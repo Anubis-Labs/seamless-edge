@@ -9,4 +9,21 @@ export default defineConfig({
       overlay: true,
     },
   },
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@headlessui/react', 'framer-motion', 'react-icons'],
+        },
+      },
+    },
+  },
 })

@@ -1,0 +1,19 @@
+{
+  "buildCommand": "npm install --force && npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*).(js|css|ico|png|jpg|jpeg|svg|webp|woff|woff2|ttf|eot)",
+      "dest": "/$1.$2"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+} 

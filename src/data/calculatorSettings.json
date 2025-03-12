@@ -1,0 +1,184 @@
+{
+  "serviceOptions": [
+    { 
+      "id": "boarding", 
+      "name": "Boarding & Installation", 
+      "description": "Complete drywall installation with high-quality materials",
+      "basePrice": 2.5,
+      "icon": "📋"
+    },
+    { 
+      "id": "taping", 
+      "name": "Taping & Mudding", 
+      "description": "Professional taping and mudding for seamless walls",
+      "basePrice": 1.75,
+      "icon": "🔧"
+    },
+    { 
+      "id": "sanding", 
+      "name": "Sanding & Finishing", 
+      "description": "Fine finishing and detailed sanding work",
+      "basePrice": 1.25,
+      "icon": "✨"
+    },
+    { 
+      "id": "repair", 
+      "name": "Repairs & Patches", 
+      "description": "Targeted repairs for damaged areas",
+      "basePrice": 3.5,
+      "icon": "🔨"
+    },
+    { 
+      "id": "texture", 
+      "name": "Custom Textures", 
+      "description": "Specialty texture application",
+      "basePrice": 2.95,
+      "icon": "🎨"
+    }
+  ],
+  "complexityOptions": [
+    { 
+      "id": "simple", 
+      "name": "Simple", 
+      "description": "Standard room, minimal angles/corners",
+      "multiplier": 0.85
+    },
+    { 
+      "id": "moderate", 
+      "name": "Moderate", 
+      "description": "Average complexity with some detail work",
+      "multiplier": 1.0
+    },
+    { 
+      "id": "complex", 
+      "name": "Complex", 
+      "description": "High ceilings, many corners, detailed work",
+      "multiplier": 1.35
+    }
+  ],
+  "addonOptions": [
+    { 
+      "id": "premium-materials", 
+      "name": "Premium Materials", 
+      "description": "Higher grade drywall and finishing materials",
+      "price": 0.75
+    },
+    { 
+      "id": "same-day", 
+      "name": "Expedited Service", 
+      "description": "Prioritized scheduling and faster completion",
+      "price": 250
+    },
+    { 
+      "id": "soundproofing", 
+      "name": "Soundproofing", 
+      "description": "Additional soundproofing materials and techniques",
+      "price": 2.50
+    }
+  ],
+  "locationOptions": [
+    {
+      "id": "calgary",
+      "name": "Calgary",
+      "region": "Calgary Region",
+      "travelFee": 0
+    },
+    {
+      "id": "airdrie",
+      "name": "Airdrie",
+      "region": "Calgary Region",
+      "travelFee": 0
+    },
+    {
+      "id": "cochrane",
+      "name": "Cochrane",
+      "region": "Calgary Region",
+      "travelFee": 50
+    },
+    {
+      "id": "chestermere",
+      "name": "Chestermere",
+      "region": "Calgary Region",
+      "travelFee": 50
+    },
+    {
+      "id": "okotoks",
+      "name": "Okotoks",
+      "region": "Calgary Region",
+      "travelFee": 75
+    },
+    {
+      "id": "red-deer",
+      "name": "Red Deer",
+      "region": "Central Alberta",
+      "travelFee": 150
+    },
+    {
+      "id": "lethbridge",
+      "name": "Lethbridge",
+      "region": "Southern Alberta",
+      "travelFee": 225
+    },
+    {
+      "id": "medicine-hat",
+      "name": "Medicine Hat",
+      "region": "Southern Alberta",
+      "travelFee": 300
+    },
+    {
+      "id": "edmonton",
+      "name": "Edmonton",
+      "region": "Northern Alberta",
+      "travelFee": 300
+    },
+    {
+      "id": "fort-mcmurray",
+      "name": "Fort McMurray",
+      "region": "Northern Alberta",
+      "travelFee": 450
+    },
+    {
+      "id": "grande-prairie",
+      "name": "Grande Prairie",
+      "region": "Northern Alberta",
+      "travelFee": 400
+    },
+    {
+      "id": "banff",
+      "name": "Banff",
+      "region": "Mountain Region",
+      "travelFee": 125
+    },
+    {
+      "id": "canmore",
+      "name": "Canmore",
+      "region": "Mountain Region",
+      "travelFee": 100
+    },
+    {
+      "id": "other",
+      "name": "Other Location",
+      "region": "Custom",
+      "travelFee": 0
+    }
+  ],
+  "calculationSettings": {
+    "materialsCostPercentage": 0.4,
+    "laborCostPercentage": 0.6,
+    "minimumProjectSize": 50,
+    "discountThresholds": [
+      {
+        "squareFootage": 1000,
+        "discountPercentage": 0.05
+      },
+      {
+        "squareFootage": 2500,
+        "discountPercentage": 0.10
+      },
+      {
+        "squareFootage": 5000,
+        "discountPercentage": 0.15
+      }
+    ]
+  }
+} 

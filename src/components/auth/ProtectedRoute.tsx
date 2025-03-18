@@ -1,30 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import authService from '../../services/authService';
+import { supabase } from '@/lib/supabaseClient';
+import { Box, CircularProgress } from '@mui/material';
 
-interface ProtectedRouteProps {
-  redirectPath?: string;
-  children?: React.ReactNode;
-}
+const ProtectedRoute: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-/**
- * A wrapper for routes that should only be accessible to authenticated users
- */
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  redirectPath = '/admin/login',
-  children 
-}) => {
-  const isAuthenticated = authService.isAuthenticated();
-  
-  if (!isAuthenticated) {
-    return <Navigate to={redirectPath} replace />;
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+    };
+    
+    checkAuth();
+    
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsAuthenticated(!!session);
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Show loading spinner while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh' 
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
-  
-  return (
-    <>
-      {children ? children : <Outlet />}
-    </>
-  );
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Render child routes if authenticated
+  return <Outlet />;
 };
 
 export default ProtectedRoute; 

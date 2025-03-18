@@ -27,7 +27,7 @@ const AboutPage: React.FC = () => {
       {/* Our Story Section */}
       <section className="w-full py-16 md:py-24 bg-gradient-to-b from-neutral-offwhite/50 to-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 lg:gap-20 items-center">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -69,7 +69,7 @@ const AboutPage: React.FC = () => {
       {/* Craftsmanship Philosophy */}
       <section className="w-full py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 lg:gap-20 items-center">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -131,7 +131,7 @@ const AboutPage: React.FC = () => {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-16">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -140,7 +140,7 @@ const AboutPage: React.FC = () => {
               variants={fadeIn}
               className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
             >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
                 <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-accent-forest/10">
                   <img 
                     src="/images/services/tools.jpg" 
@@ -168,7 +168,7 @@ const AboutPage: React.FC = () => {
               variants={fadeIn}
               className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
             >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
                 <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-accent-forest/10">
                   <img 
                     src="/images/services/consultation.jpg" 
@@ -202,7 +202,7 @@ const AboutPage: React.FC = () => {
               Our team is more than just professionals—we're artisans. Each member shares our passion for quality, 
               working together to deliver results that not only meet but exceed client expectations.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 sm:gap-8">
               {[1, 2, 3, 4].map((num) => (
                 <div key={num} className="text-center transform hover:scale-105 transition-transform duration-300">
                   <div className="w-24 h-24 mx-auto rounded-full overflow-hidden mb-3 shadow-md border-2 border-accent-forest/10">
@@ -222,10 +222,10 @@ const AboutPage: React.FC = () => {
       </section>
 
       {/* Our Future Vision */}
-      <section className="w-full py-16 md:py-24 bg-accent-navy text-white relative overflow-hidden">
+      <section className="w-full py-16 md:py-24 bg-gradient-to-b from-white to-neutral-offwhite/50 relative overflow-hidden">
         {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full transform -translate-y-1/3 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-forest/10 rounded-full transform translate-y-1/2 -translate-x-1/3"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-accent-sage/5 rounded-full transform -translate-y-1/3 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-forest/5 rounded-full transform translate-y-1/2 -translate-x-1/3"></div>
         
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -236,21 +236,21 @@ const AboutPage: React.FC = () => {
             variants={fadeIn}
             className="max-w-3xl mx-auto text-center"
           >
-            <h2 className="text-3xl md:text-4xl font-bold font-heading mb-6">Our Future Vision</h2>
+            <h2 className="text-3xl md:text-4xl font-bold font-heading mb-6 text-accent-navy">Our Future Vision</h2>
             <div className="w-20 h-1 bg-accent-forest mx-auto mb-8"></div>
-            <p className="mb-6 text-lg font-body">
+            <p className="mb-6 text-lg text-gray-700 font-body">
               Looking ahead, we're committed to mentoring the next generation of drywall experts and expanding 
               our service footprint. Our vision is to set new industry standards, blending traditional techniques 
               with innovative practices to create lasting beauty in every space.
             </p>
-            <p className="mb-8 font-body">
+            <p className="mb-8 text-gray-700 font-body">
               As we grow, we remain dedicated to our core values of quality, integrity, and customer satisfaction.
               We're excited about the future of Seamless Edge Co. and look forward to continuing to serve the 
               Calgary area with excellence for years to come.
             </p>
             <a 
               href="/contact" 
-              className="inline-block px-8 py-4 bg-white text-accent-navy font-heading font-semibold hover:bg-gray-100 transition-colors duration-300 shadow-md"
+              className="inline-block px-8 py-4 bg-accent-sage text-white font-heading font-semibold hover:bg-accent-gold transition-colors duration-300 shadow-md rounded-lg"
             >
               Join Us on Our Journey
             </a>

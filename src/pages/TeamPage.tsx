@@ -76,7 +76,7 @@ const TeamPage: React.FC = () => {
       <PageHero
         title="Meet Our Team"
         subtitle="The skilled professionals dedicated to delivering flawless drywall results for your project"
-        backgroundImage="/images/services/tools.jpg"
+        backgroundImage="/images/updated/services/consultation-meeting.jpg"
         showAIAssistant={true}
       />
 

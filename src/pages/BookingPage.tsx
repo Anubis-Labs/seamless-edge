@@ -67,6 +67,7 @@ const BookingPage: React.FC = () => {
       <PageHero 
         title="Book an Appointment" 
         subtitle="Check our availability and schedule a consultation for your drywall project"
+        backgroundImage="/images/updated/services/minimalist-bedroom.jpg"
       />
       
       <section className="py-16 bg-white">

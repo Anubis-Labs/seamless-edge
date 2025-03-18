@@ -174,6 +174,51 @@ const ContactPage: React.FC = () => {
           </div>
         </div>
       </section>
+      
+      {/* Ready to Get Started? Section */}
+      <section className="relative py-20 overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/images/updated/interiors/modern-interior.jpg" 
+            alt="Interior drywall finish" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/70"></div> {/* Semi-transparent black overlay */}
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            variants={fadeIn}
+            className="max-w-3xl mx-auto text-center"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6 text-white">Ready to Get Started?</h2>
+            <div className="w-20 h-1 bg-accent-gold mx-auto mb-8"></div>
+            <p className="mb-10 text-xl text-white/90 font-body">
+              Transform your space with Seamless Edge's expert drywall solutions. 
+              Contact us today for a free consultation and quote.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <a 
+                href="tel:+14031234567" 
+                className="px-8 py-4 bg-accent-gold text-white font-heading font-semibold rounded-lg shadow-lg hover:bg-white hover:text-accent-navy transition-all duration-300 w-full sm:w-auto"
+              >
+                Call: (403) 123-4567
+              </a>
+              <a 
+                href="#contact-form" 
+                className="px-8 py-4 bg-white/10 text-white border-2 border-white font-heading font-semibold rounded-lg shadow-lg hover:bg-white hover:text-accent-navy transition-all duration-300 w-full sm:w-auto"
+              >
+                Request an Estimate
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </>
   );
 };

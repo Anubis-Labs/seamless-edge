@@ -1,80 +1,62 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Layout from './components/layout/Layout';
-import HomePage from './pages/HomePage';
-import QuotePage from './pages/QuotePage';
-import ResponsiveTest from './pages/ResponsiveTest';
-import AboutPage from './pages/AboutPage';
-import ServicesPage from './pages/ServicesPage';
-import GalleryPage from './pages/GalleryPage';
-import BlogPage from './pages/BlogPage';
-import ContactPage from './pages/ContactPage';
-import BookingPage from './pages/BookingPage';
-import PaymentsPage from './pages/PaymentsPage';
-import NotFoundPage from './pages/NotFoundPage';
-import TeamPage from './pages/TeamPage';
-import JobsPage from './pages/JobsPage';
-import JobDetailPage from './pages/JobDetailPage';
-// Admin pages
-import AdminLoginPage from './pages/admin/LoginPage';
-import AdminDashboard from './pages/admin/Dashboard';
-import CalculatorSettingsPage from './pages/admin/CalculatorSettings';
-import BlogManagementPage from './pages/admin/BlogManagement';
-import GalleryManagement from './pages/admin/GalleryManagement';
-import ServicesManagement from './pages/admin/ServicesManagement';
-import TestimonialsManagement from './pages/admin/TestimonialsManagement';
-import MessagesManagement from './pages/admin/MessagesManagement';
-import SiteSettings from './pages/admin/SiteSettings';
-import BookingsManagement from './pages/admin/BookingsManagement';
-import JobsManagement from './pages/admin/JobsManagement';
-// Admin components
-import AdminLayout from './components/admin/AdminLayout';
-// Auth components
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Dashboard from './components/dashboard/Dashboard';
+import BookingCalendar from './components/bookings/BookingCalendar';
+import BlogManager from './components/blog/BlogManager';
+import TestimonialManager from './components/testimonials/TestimonialManager';
+import ClientManager from './components/clients/ClientManager';
+import SettingsPage from './components/settings/SettingsPage';
+import AdminLayout from './components/layout/AdminLayout';
+import Login from './components/auth/Login';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import './App.css';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { ThemeProvider, createTheme } from '@mui/material';
 
-function App() {
+// Create theme
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#f50057',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  },
+});
+
+const App: React.FC = () => {
   return (
-    <Router>
-      <Routes>
-        {/* Public Pages */}
-        <Route path="/" element={<Layout><HomePage /></Layout>} />
-        <Route path="/quote" element={<Layout><QuotePage /></Layout>} />
-        <Route path="/responsive-test" element={<Layout><ResponsiveTest /></Layout>} />
-        <Route path="/about" element={<Layout><AboutPage /></Layout>} />
-        <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
-        <Route path="/gallery" element={<Layout><GalleryPage key="gallery-page" /></Layout>} />
-        <Route path="/blog" element={<Layout><BlogPage key="blog-page" /></Layout>} />
-        <Route path="/team" element={<Layout><TeamPage /></Layout>} />
-        <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
-        <Route path="/booking" element={<Layout><BookingPage /></Layout>} />
-        <Route path="/payments" element={<Layout><PaymentsPage /></Layout>} />
-        <Route path="/jobs" element={<Layout><JobsPage /></Layout>} />
-        <Route path="/jobs/:id" element={<Layout><JobDetailPage /></Layout>} />
-        
-        {/* Admin Authentication */}
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        
-        {/* Protected Admin Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-          <Route path="/admin/calculator-settings" element={<AdminLayout><CalculatorSettingsPage /></AdminLayout>} />
-          <Route path="/admin/blog" element={<AdminLayout><BlogManagementPage /></AdminLayout>} />
-          <Route path="/admin/gallery" element={<AdminLayout><GalleryManagement /></AdminLayout>} />
-          <Route path="/admin/services" element={<AdminLayout><ServicesManagement /></AdminLayout>} />
-          <Route path="/admin/testimonials" element={<AdminLayout><TestimonialsManagement /></AdminLayout>} />
-          <Route path="/admin/clients" element={<AdminLayout><div>Client Management (Coming Soon)</div></AdminLayout>} />
-          <Route path="/admin/bookings" element={<AdminLayout><BookingsManagement /></AdminLayout>} />
-          <Route path="/admin/messages" element={<AdminLayout><MessagesManagement /></AdminLayout>} />
-          <Route path="/admin/settings" element={<AdminLayout><SiteSettings /></AdminLayout>} />
-          <Route path="/admin/jobs" element={<AdminLayout><JobsManagement /></AdminLayout>} />
-        </Route>
-        
-        {/* 404 Page */}
-        <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AdminLayout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/bookings" element={<BookingCalendar />} />
+                  <Route path="/blog" element={<BlogManager />} />
+                  <Route path="/testimonials" element={<TestimonialManager />} />
+                  <Route path="/clients" element={<ClientManager />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </AdminLayout>} />
+            </Route>
+            
+            {/* Redirect all unknown routes to dashboard */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
-}
+};
 
 export default App;

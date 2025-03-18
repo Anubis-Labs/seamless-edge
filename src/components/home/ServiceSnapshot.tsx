@@ -279,28 +279,28 @@ const ServiceSnapshot: React.FC = () => {
       description: 'From initial layout to secure installation, our boarding services set the foundation for perfection.',
       icon: <DryboardIcon />,
       link: '/services#boarding',
-      image: 'https://images.unsplash.com/photo-1513467655676-561b7d489a88?w=600&q=80&auto=format&fit=crop'
+      image: 'https://images.unsplash.com/photo-1513467655676-561b7d489a88?w=800&q=80&auto=format&fit=crop'
     },
     {
       title: 'Taping & Mudding',
       description: 'Precision taping and expertly applied mud ensure smooth, even surfaces every time.',
       icon: <TapingIcon />,
       link: '/services#taping',
-      image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&q=80&auto=format&fit=crop'
+      image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&q=80&auto=format&fit=crop'
     },
     {
       title: 'Sanding & Finishing',
       description: 'Our finishing touches are all about detail—polished surfaces that make your space shine.',
       icon: <FinishingIcon />,
       link: '/services#sanding',
-      image: 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?w=600&q=80&auto=format&fit=crop'
+      image: 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?w=800&q=80&auto=format&fit=crop'
     },
     {
       title: 'Repairs & Textures',
-      description: 'From minor repairs to custom textures like knockdown or orange peel, we\'ve got you covered.',
+      description: 'From minor repairs to custom textures like knockdown or orange peel, we have got you covered.',
       icon: <RepairsIcon />,
       link: '/services#repairs',
-      image: '/images/updated/interiors/texture-finish.jpg'
+      image: 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop'
     }
   ];
 
@@ -382,7 +382,7 @@ const ServiceSnapshot: React.FC = () => {
       {/* Background vector animation for the entire section */}
       <VectorAnimation inView={inView} scrollPosition={scrollPosition} />
       
-      {/* Decorative elements */}
+      {/* Decorative elements - Enhanced with additional elements */}
       <div 
         className="absolute top-10 left-10 w-48 h-48 rounded-full bg-accent-sage/5 -z-10"
         style={{ 
@@ -399,12 +399,28 @@ const ServiceSnapshot: React.FC = () => {
           opacity: inView ? 0.8 : 0,
         }}
       ></div>
+      <div 
+        className="absolute top-1/3 right-1/4 w-40 h-40 rounded-full bg-accent-navy/3 -z-10"
+        style={{ 
+          transform: inView ? `translate(${calculateParallax(0.07)}px, ${calculateParallax(0.04)}px)` : 'none',
+          transition: 'transform 0.3s ease-out',
+          opacity: inView ? 0.6 : 0,
+        }}
+      ></div>
+      <div 
+        className="absolute bottom-1/4 left-1/3 w-32 h-32 rounded-full bg-accent-forest/3 -z-10"
+        style={{ 
+          transform: inView ? `translate(${calculateParallax(-0.06)}px, ${calculateParallax(-0.03)}px)` : 'none',
+          transition: 'transform 0.3s ease-out',
+          opacity: inView ? 0.7 : 0,
+        }}
+      ></div>
       
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-        {/* Magazine-style section header with editorial typography */}
-        <div className="mb-16 text-center max-w-xl mx-auto relative">
+        {/* Revamped section header with enhanced typography and visual elements */}
+        <div className="mb-16 text-center relative">
           <div 
-            className="transition-all duration-1000 delay-300"
+            className="transition-all duration-1000 delay-300 max-w-3xl mx-auto"
             style={{ 
               opacity: inView ? 1 : 0,
               transform: inView ? 'translateY(0)' : 'translateY(20px)',
@@ -412,155 +428,168 @@ const ServiceSnapshot: React.FC = () => {
             }}
           >
             <span 
-              className="text-accent-gold text-xs font-heading tracking-[0.2em] uppercase"
+              className="text-accent-gold text-xs font-heading tracking-[0.2em] uppercase relative inline-block"
               style={{
                 background: inView ? 'linear-gradient(90deg, transparent, rgba(213, 160, 33, 0.8), transparent)' : '',
                 backgroundSize: '200% auto',
                 animation: inView ? 'shine 3s ease-in-out infinite' : 'none',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: inView ? 'transparent' : 'initial',
-                display: 'inline-block',
               }}
             >
-              Professional Services
+              <span className="absolute -left-6 top-1/2 w-4 h-px bg-accent-gold/50"></span>
+              Professional Excellence
+              <span className="absolute -right-6 top-1/2 w-4 h-px bg-accent-gold/50"></span>
             </span>
+            
             <h2 
-              className="text-3xl md:text-4xl font-heading font-semibold mt-3 mb-6 text-accent-sage tracking-tight leading-tight relative z-10"
+              className="text-4xl md:text-5xl font-heading font-bold mt-4 mb-6 text-accent-sage tracking-tight leading-tight relative z-10 px-4"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? 'translateY(0)' : 'translateY(15px)',
                 transition: 'opacity 0.6s ease-out 0.4s, transform 0.6s ease-out 0.4s',
               }}
             >
-              Craftsmanship in Every Detail
+              <span className="relative">
+                Craftsmanship in 
+                <span className="relative">
+                  <svg className="absolute -bottom-2 left-0 w-full h-2 text-accent-gold/30" viewBox="0 0 200 8" preserveAspectRatio="none">
+                    <path d="M0,5 C50,0 150,10 200,5" stroke="currentColor" strokeWidth="2" fill="none" />
+                  </svg>
+                </span>
+              </span>
+              <br/>
+              <span className="relative inline-block mt-1">
+                Every Detail
+                <span className="absolute -right-8 -top-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-accent-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </span>
+              </span>
             </h2>
-            <div 
-              className="w-16 h-px bg-accent-gold mx-auto mb-6"
-              style={{ 
-                width: inView ? '16px' : '0px',
-                transition: 'width 0.6s ease-out 0.6s',
-                animation: inView ? 'breathe 3s ease-in-out infinite' : 'none',
-              }}
-            ></div>
+            
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div 
+                className="w-12 h-px bg-accent-sage/30"
+                style={{ 
+                  width: inView ? '12px' : '0px',
+                  transition: 'width 0.6s ease-out 0.6s',
+                }}
+              ></div>
+              <div 
+                className="w-16 h-px bg-accent-gold"
+                style={{ 
+                  width: inView ? '16px' : '0px',
+                  transition: 'width 0.6s ease-out 0.7s',
+                  animation: inView ? 'breathe 3s ease-in-out infinite' : 'none',
+                }}
+              ></div>
+              <div 
+                className="w-12 h-px bg-accent-sage/30"
+                style={{ 
+                  width: inView ? '12px' : '0px',
+                  transition: 'width 0.6s ease-out 0.8s',
+                }}
+              ></div>
+            </div>
+            
             <p 
-              className="text-lg text-neutral-charcoal/70 font-body leading-relaxed"
+              className="text-lg md:text-xl text-neutral-charcoal/70 font-body leading-relaxed max-w-2xl mx-auto"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? 'translateY(0)' : 'translateY(15px)',
-                transition: 'opacity 0.6s ease-out 0.7s, transform 0.6s ease-out 0.7s',
+                transition: 'opacity 0.6s ease-out 0.9s, transform 0.6s ease-out 0.9s',
               }}
             >
-              At Seamless Edge, we deliver exceptional drywall services that transform your spaces with precision and artistry.
+              At Seamless Edge, we elevate every project through meticulous attention to detail, 
+              premium techniques, and an unwavering pursuit of perfection that transforms spaces 
+              with precision and artistry.
             </p>
           </div>
         </div>
         
-        {/* Magazine-inspired staggered grid layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-16 gap-x-12 mb-20">
-          {services.map((service, index) => (
-            <div 
-              key={index} 
-              className="group relative"
-              style={{ 
-                opacity: inView ? 1 : 0,
-                transform: inView ? 'translateY(0)' : 'translateY(50px) scale(0.95)',
-                transition: `opacity 0.8s ease-out ${0.3 + index * 0.2}s, transform 0.8s ease-out ${0.3 + index * 0.2}s`,
-                transformOrigin: 'center bottom',
-              }}
-            >
-              {/* Image with overlay */}
-              <div className="relative h-64 mb-6 overflow-hidden rounded-lg shadow-lg">
+        {/* Completely redesigned service card layout */}
+        <div className="mb-16">
+          {/* Modern 2x2 grid for service cards on medium screens, stacked on mobile */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10">
+            {services.map((service, index) => (
+              <Link 
+                key={index} 
+                to={service.link}
+                className="group block h-full"
+                aria-label={`Learn more about ${service.title}`}
+              >
                 <div 
-                  className="absolute inset-0 bg-gradient-to-t from-neutral-charcoal/60 to-transparent group-hover:from-neutral-charcoal/70 transition-colors duration-500"
-                  style={{
-                    transform: inView ? `translateY(${calculateParallax(0.02)}px)` : 'none',
-                    transition: 'transform 0.3s ease-out, background-color 0.5s ease-out',
-                  }}
-                ></div>
-                <img 
-                  src={service.image} 
-                  alt={service.title}
-                  className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                  style={{
-                    transform: inView ? `scale(1.02) translateY(${calculateParallax(-0.02)}px)` : 'scale(1)',
-                    transition: 'transform 0.8s ease-out',
-                  }}
-                />
-                <div 
-                  className="absolute top-4 left-4 z-10"
-                  style={{
+                  className="relative h-full overflow-hidden bg-white rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-2 hover:scale-[1.01]"
+                  style={{ 
                     opacity: inView ? 1 : 0,
-                    transform: inView ? 'translateY(0) rotate(0)' : 'translateY(20px) rotate(-5deg)',
-                    transition: `opacity 0.5s ease-out ${0.7 + index * 0.1}s, transform 0.5s ease-out ${0.7 + index * 0.1}s`,
-                    animation: inView ? `float 6s ease-in-out ${index * 1.5}s infinite` : 'none',
+                    transform: inView ? 'translateY(0)' : 'translateY(30px)',
+                    transition: `opacity 0.7s ease-out ${0.2 + index * 0.1}s, transform 0.7s ease-out ${0.2 + index * 0.1}s`,
                   }}
                 >
-                  <span className="inline-flex items-center justify-center w-14 h-14 bg-white/90 text-accent-gold shadow-md rounded">
-                    {service.icon}
-                  </span>
+                  {/* Image container with improved aspect ratio for better display */}
+                  <div className="relative w-full pb-[58%] overflow-hidden">
+                    {/* Service icon badge with improved visual style */}
+                    <div className="absolute top-5 right-5 z-20 w-16 h-16 flex items-center justify-center bg-white/95 text-accent-gold rounded-full shadow-lg transform group-hover:scale-110 group-hover:bg-white transition-all duration-300">
+                      {service.icon}
+                    </div>
+
+                    {/* Image with proper fill, rendering at full quality */}
+                    <img 
+                      src={service.image} 
+                      alt={service.title}
+                      className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-800 ease-out scale-100 group-hover:scale-110"
+                      loading="eager"
+                      onError={(e) => {
+                        // Fallback to a reliable image if the original fails to load
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop') {
+                          target.src = 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop';
+                        }
+                      }}
+                    />
+
+                    {/* Enhanced gradient overlay for better text visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-90 group-hover:opacity-75 transition-opacity duration-500"></div>
+                    
+                    {/* Service title overlay with improved positioning and emphasis */}
+                    <div className="absolute bottom-0 left-0 w-full p-6">
+                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-1 group-hover:text-accent-gold transition-colors duration-300">
+                        {service.title}
+                      </h3>
+                      <div className="w-0 h-0.5 bg-accent-gold group-hover:w-16 transition-all duration-500 ease-out"></div>
+                    </div>
+                  </div>
+
+                  {/* Description area with improved typography and spacing */}
+                  <div className="p-6 md:p-7">
+                    <p className="text-gray-700 mb-5 leading-relaxed">
+                      {service.description}
+                    </p>
+                    
+                    {/* Learn more link with clearer call to action */}
+                    <div className="flex items-center text-accent-sage font-semibold group-hover:text-accent-gold transition-colors duration-300">
+                      <span className="mr-2 uppercase text-sm tracking-wide">Learn More</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform transition-transform duration-300 group-hover:translate-x-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="absolute bottom-0 left-0 w-full p-4">
-                  <h3 className="text-xl font-bold font-heading text-white mb-1">{service.title}</h3>
-                </div>
-              </div>
-              
-              {/* Magazine-style typography with refined hierarchy */}
-              <div className="px-2">
-                <div 
-                  className="w-12 h-px bg-accent-gold mb-4 transition-all duration-300 group-hover:w-20"
-                  style={{
-                    width: inView ? '12px' : '0px',
-                    transition: `width 0.4s ease-out ${0.6 + index * 0.1}s, width 0.3s ease-out`,
-                  }}
-                ></div>
-                
-                <p 
-                  className="text-neutral-charcoal/70 mb-6 font-body leading-relaxed"
-                  style={{
-                    opacity: inView ? 1 : 0,
-                    transform: inView ? 'translateY(0)' : 'translateY(10px)',
-                    transition: `opacity 0.5s ease-out ${0.7 + index * 0.1}s, transform 0.5s ease-out ${0.7 + index * 0.1}s`,
-                  }}
-                >
-                  {service.description}
-                </p>
-                
-                {/* Editorial-style link styling */}
-                <Link 
-                  to={service.link} 
-                  className="inline-flex items-center text-accent-sage font-medium font-heading group-hover:text-accent-gold transition-all duration-300 text-sm tracking-wide"
-                  aria-label={`Learn more about ${service.title}`}
-                  style={{
-                    opacity: inView ? 1 : 0,
-                    transform: inView ? 'translateX(0)' : 'translateX(-10px)',
-                    transition: `opacity 0.5s ease-out ${0.8 + index * 0.1}s, transform 0.5s ease-out ${0.8 + index * 0.1}s, color 0.3s ease-out`,
-                  }}
-                >
-                  <span className="mr-2 uppercase">Learn More</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
         
-        {/* Magazine-style call to action */}
-        <div 
-          className="text-center"
-          style={{ 
-            opacity: inView ? 1 : 0,
-            transform: inView ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'opacity 0.8s ease-out 1.2s, transform 0.8s ease-out 1.2s',
-          }}
-        >
+        {/* Enhanced call to action */}
+        <div className="text-center">
           <Link 
             to="/services" 
-            className="inline-flex items-center px-10 py-4 bg-accent-sage text-white font-heading tracking-wide hover:bg-accent-gold hover:text-accent-sage transition-all duration-300 shadow-md hover:shadow-lg group rounded"
+            className="inline-flex items-center px-10 py-4 bg-accent-sage text-white font-heading tracking-wide hover:bg-accent-gold transition-all duration-300 shadow-md hover:shadow-lg rounded-lg"
           >
             <span className="mr-2">View All Services</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </Link>

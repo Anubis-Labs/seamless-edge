@@ -6,7 +6,6 @@ import {
   FaInstagram, 
   FaLinkedinIn, 
   FaTwitter, 
-  FaPinterestP, 
   FaYoutube,
   FaMapMarkerAlt,
   FaPhone,
@@ -51,7 +50,6 @@ const Footer: React.FC = () => {
     { icon: <FaInstagram />, url: 'https://instagram.com', name: 'Instagram' },
     { icon: <FaLinkedinIn />, url: 'https://linkedin.com', name: 'LinkedIn' },
     { icon: <FaTwitter />, url: 'https://twitter.com', name: 'Twitter' },
-    { icon: <FaPinterestP />, url: 'https://pinterest.com', name: 'Pinterest' },
     { icon: <FaYoutube />, url: 'https://youtube.com', name: 'YouTube' }
   ];
 

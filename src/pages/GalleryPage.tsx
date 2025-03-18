@@ -184,7 +184,7 @@ const GalleryPage: React.FC = () => {
       <PageHero 
         title="Project Gallery" 
         subtitle="Browse our portfolio of drywall transformations and see our craftsmanship in action."
-        backgroundImage="/images/updated/gallery/drywall-finishing.jpg"
+        backgroundImage="/images/updated/gallery/after-renovation.jpg"
       />
 
       {/* Category Filters */}

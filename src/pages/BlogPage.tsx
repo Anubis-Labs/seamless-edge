@@ -128,7 +128,7 @@ const BlogPage: React.FC = () => {
       <PageHero 
         title="Drywall Blog & Tips" 
         subtitle="Expert advice, project showcases, and industry knowledge for your drywall projects"
-        backgroundImage="/images/updated/blog/drywall-techniques.jpg"
+        backgroundImage="/images/updated/services/sage-office-plants.jpg"
       />
 
       <section className="py-12 bg-gradient-to-b from-neutral-offwhite/50 to-white">

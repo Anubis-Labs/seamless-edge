@@ -97,4 +97,125 @@ The website includes an admin dashboard for managing calculator settings, job li
 
 Seamless Edge - [contact@seamlessedge.com](mailto:contact@seamlessedge.com)
 
-Project Link: [https://github.com/Anubis-Labs/seamless-edge](https://github.com/Anubis-Labs/seamless-edge) 
+Project Link: [https://github.com/Anubis-Labs/seamless-edge](https://github.com/Anubis-Labs/seamless-edge)
+
+# Seamless Edge Admin System
+
+A comprehensive admin panel for managing a construction/renovation business, focusing on drywall and painting services. This system provides a complete interface for managing bookings, blog content, testimonials, clients, and business analytics.
+
+## Features
+
+### Dashboard
+- Business metrics and KPIs
+- Revenue tracking and visualization
+- Project status overview
+- Recent activity feed
+- Upcoming bookings
+
+### Booking Calendar
+- Visual calendar interface for scheduling
+- Create, update, and delete bookings
+- Client information collection
+- Service type categorization
+- Status tracking (pending, confirmed, completed, cancelled)
+
+### Blog Manager
+- Create and edit blog posts with rich text editor
+- Media upload for featured images
+- Category and tag management
+- Draft/publish workflow
+- Content preview
+
+### Testimonial Manager
+- Client testimonial collection and management
+- Approval workflow (pending, approved, rejected)
+- Rating system
+- Featured testimonials for homepage display
+
+### Client Manager
+- Client database with detailed profiles
+- Project history tracking
+- Search and filtering capabilities
+- Lead management
+- Contact information storage
+
+## Tech Stack
+
+- **Frontend**: React with TypeScript
+- **UI Framework**: Material UI
+- **State Management**: React Hooks
+- **Routing**: React Router
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **File Storage**: Supabase Storage
+- **Charts**: Chart.js with react-chartjs-2
+- **Calendar**: react-big-calendar
+- **Rich Text Editor**: React Quill
+
+## Setup
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/seamless-edge-admin.git
+   cd seamless-edge-admin
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+3. Create a `.env` file in the root directory with your Supabase credentials:
+   ```
+   REACT_APP_SUPABASE_URL=https://your-project.supabase.co
+   REACT_APP_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+4. Start the development server:
+   ```
+   npm start
+   ```
+
+## Database Setup
+
+The application requires the following tables in your Supabase project:
+
+- `blog_posts`: Store blog content
+- `blog_categories`: Categories for blog posts
+- `testimonials`: Client testimonials and ratings
+- `clients`: Client information and status
+- `projects`: Project details linked to clients
+- `bookings`: Appointment and scheduling information
+
+See the SQL setup scripts in the `/docs` directory for detailed schema information.
+
+## Supabase Storage Buckets
+
+Create the following storage buckets in your Supabase project:
+
+- `blog-images`: For blog featured images and content media
+- `testimonial-images`: For client photos in testimonials
+- `project-images`: For project gallery images
+
+## Authentication
+
+This admin system uses Supabase authentication. To set up admin users:
+
+1. Go to your Supabase dashboard
+2. Navigate to Authentication → Users
+3. Invite users via email or create them directly
+4. Assign appropriate permissions
+
+## Deployment
+
+To build for production:
+
+```
+npm run build
+```
+
+The built files will be in the `build` directory, ready to be deployed to your hosting service of choice.
+
+## License
+
+MIT 

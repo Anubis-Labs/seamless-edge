@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PageHero from '../components/common/PageHero';
 import { FaBriefcase, FaMapMarkerAlt, FaClock, FaStar } from 'react-icons/fa';
+import ResumeUploadModal from '../components/careers/ResumeUploadModal';
 
 // Job interface
 interface Job {
@@ -99,27 +100,27 @@ const JOBS_DATA: Job[] = [
     location: 'Denver, CO',
     type: 'Part-time',
     experience: '1+ years',
-    description: 'Provide administrative support to our growing drywall and finishing company with a focus on customer service and office efficiency.',
+    description: 'Support our office operations with scheduling, client communication, and administrative tasks. Flexible part-time hours with possibility for full-time in the future.',
     responsibilities: [
-      'Manage phone calls and client inquiries',
-      'Schedule appointments and site visits',
-      'Process paperwork and maintain filing systems',
-      'Assist with basic bookkeeping tasks',
-      'Support team members with administrative needs'
+      'Answer calls and emails from clients',
+      'Schedule appointments and consultations',
+      'Manage paperwork and filing systems',
+      'Process invoices and track payments',
+      'Order supplies and maintain inventory'
     ],
     requirements: [
-      'Prior office experience preferred',
-      'Excellent communication and customer service skills',
-      'Proficiency in Microsoft Office',
-      'Strong organizational abilities',
-      'Detail-oriented and reliable'
+      'Office administration experience',
+      'Excellent communication skills',
+      'Proficiency in Microsoft Office suite',
+      'Basic bookkeeping knowledge',
+      'High level of organization and attention to detail'
     ],
     benefits: [
-      'Competitive hourly rate: $17-20/hour',
-      'Flexible schedule (20-30 hours per week)',
-      'Paid time off',
-      'Potential for growth to full-time',
-      'Friendly, supportive work environment'
+      'Competitive hourly rate: $18-22/hr based on experience',
+      'Flexible schedule (15-25 hours per week)',
+      'Opportunities for growth and advancement',
+      'Friendly, supportive work environment',
+      'Employee discounts on services'
     ],
     postedDate: '2023-07-20',
     closingDate: '2023-08-20',
@@ -127,69 +128,137 @@ const JOBS_DATA: Job[] = [
   },
   {
     id: '4',
-    title: 'Junior Drywall Installer',
-    department: 'Production',
+    title: 'Drywall Installation Apprentice',
+    department: 'Installation',
     location: 'Denver, CO',
     type: 'Full-time',
     experience: 'Entry-level',
-    description: 'Learn the trade and develop your skills under the guidance of experienced professionals in the drywall industry.',
+    description: 'Learn the drywall trade hands-on with our skilled installation team. No experience required - we\'ll train you from the ground up with our comprehensive apprenticeship program.',
     responsibilities: [
-      'Assist senior installers with drywall hanging',
-      'Prepare work areas and clean up job sites',
-      'Load, unload, and organize materials',
-      'Learn proper techniques for measuring, cutting, and installing drywall',
-      'Help maintain tools and equipment'
+      'Assist journeyman installers with drywall hanging',
+      'Learn proper measuring, cutting, and hanging techniques',
+      'Help maintain job site cleanliness and organization',
+      'Assist with material handling and preparation',
+      'Participate in regular training sessions'
     ],
     requirements: [
-      'No prior experience necessary - willing to train',
-      'Strong work ethic and eagerness to learn',
-      'Good physical stamina and ability to lift 50+ lbs',
+      'High school diploma or equivalent',
+      'Physical ability to lift up to 50 lbs regularly',
       'Reliable transportation',
-      'High school diploma or GED preferred'
+      'Strong work ethic and willingness to learn',
+      'Basic math and measuring skills'
     ],
     benefits: [
-      'Starting pay: $17-20/hr with regular increases as skills develop',
-      'Paid on-the-job training',
-      'Health insurance after 90 days',
-      'Opportunities for advancement',
-      'Stable work schedule'
+      'Starting pay: $16-18/hr with regular increases as skills develop',
+      'Paid on-the-job training and mentorship',
+      'Health insurance eligibility after 90 days',
+      'Clear path for advancement to journeyman level',
+      'Tool program to help build your equipment over time'
     ],
-    postedDate: '2023-07-25',
-    closingDate: '2023-08-25',
+    postedDate: '2023-10-01',
+    closingDate: '2023-11-15',
     featured: false
   },
   {
     id: '5',
-    title: 'Marketing Coordinator',
-    department: 'Marketing',
-    location: 'Remote (Denver area preferred)',
-    type: 'Part-time',
-    experience: '2+ years',
-    description: 'Develop and implement marketing strategies to promote our drywall and finishing services to residential and commercial clients.',
+    title: 'Lead Texture Specialist',
+    department: 'Finishing',
+    location: 'Denver, CO',
+    type: 'Full-time',
+    experience: '7+ years',
+    description: 'Join our specialty finishes team to create stunning texture applications for high-end residential and commercial projects. Seeking an artist with extensive experience in custom texturing techniques.',
     responsibilities: [
-      'Manage social media accounts and content calendar',
-      'Update website content and blog',
-      'Coordinate photo and video shoots of completed projects',
-      'Design promotional materials and advertisements',
-      'Track marketing metrics and report on campaign effectiveness'
+      'Execute complex custom texture patterns and designs',
+      'Develop sample boards for client approval',
+      'Train team members on specialty application techniques',
+      'Consult with clients on texture options and finishes',
+      'Ensure consistent quality across all projects'
     ],
     requirements: [
-      'Experience in marketing, preferably in construction or related industries',
-      'Proficiency with social media platforms and basic graphic design',
-      'Excellent writing and communication skills',
-      'Knowledge of SEO and digital marketing principles',
-      'Self-motivated with ability to work independently'
+      'Minimum 7 years experience in texture application',
+      'Portfolio demonstrating skill with multiple texture styles',
+      'Experience with specialty tools and equipment',
+      'Color matching and mixing expertise',
+      'Excellent customer service and communication skills'
     ],
     benefits: [
-      'Competitive pay: $22-28/hr based on experience',
-      'Flexible remote work arrangement (10-15 hours per week)',
-      'Performance bonuses',
-      'Opportunity to grow with the company',
-      'Creative freedom and collaborative environment'
+      'Premium pay rate: $32-45/hr based on experience and portfolio',
+      'Health, dental, and vision insurance',
+      'Retirement benefits with company matching',
+      'Paid time off and holidays',
+      'Professional development budget for advanced training',
+      'Recognition program for exceptional work'
     ],
-    postedDate: '2023-07-30',
-    closingDate: '2023-08-30',
+    postedDate: '2023-09-15',
+    closingDate: '2023-11-30',
+    featured: true
+  },
+  {
+    id: '6',
+    title: 'Drywall Repair Technician',
+    department: 'Repairs',
+    location: 'Denver, CO',
+    type: 'Full-time',
+    experience: '3+ years',
+    description: 'Specialize in residential and commercial drywall repairs. This position focuses on fixing water damage, holes, cracks, and texture matching in existing structures.',
+    responsibilities: [
+      'Assess damage and provide repair solutions',
+      'Perform patch repairs with seamless finishing',
+      'Match existing textures and finishes',
+      'Coordinate with painting contractors when needed',
+      'Maintain efficient scheduling for multiple smaller jobs daily'
+    ],
+    requirements: [
+      'Minimum 3 years experience in drywall repair',
+      'Excellent texture-matching skills',
+      'Clean driving record and reliable vehicle',
+      'Strong problem-solving abilities',
+      'Effective time management skills'
+    ],
+    benefits: [
+      'Competitive pay: $25-32/hr based on experience',
+      'Vehicle and fuel allowance',
+      'Comprehensive benefits package',
+      'Regular schedule with minimal weekend work',
+      'Cell phone stipend for work communications'
+    ],
+    postedDate: '2023-10-10',
+    closingDate: '2023-12-10',
     featured: false
+  },
+  {
+    id: '7',
+    title: 'Drywall Project Manager',
+    department: 'Management',
+    location: 'Denver, CO',
+    type: 'Full-time',
+    experience: '5+ years',
+    description: 'Oversee residential and commercial drywall projects from contract to completion. Coordinate crews, manage client relationships, and ensure quality standards are met on all jobs.',
+    responsibilities: [
+      'Develop project plans and timelines',
+      'Coordinate drywall installation and finishing teams',
+      'Perform quality inspections throughout projects',
+      'Manage client communications and expectations',
+      'Troubleshoot issues and implement solutions quickly'
+    ],
+    requirements: [
+      'Minimum 5 years in drywall installation/finishing',
+      'Previous supervisory or management experience',
+      'Knowledge of building codes and industry standards',
+      'Excellent communication and leadership skills',
+      'Proficiency with project management software'
+    ],
+    benefits: [
+      'Competitive salary: $65,000-85,000 based on experience',
+      'Performance bonus structure',
+      'Comprehensive benefits package',
+      'Company vehicle for site visits',
+      'Cell phone and laptop provided',
+      'Professional development opportunities'
+    ],
+    postedDate: '2023-08-15',
+    closingDate: '2023-12-31',
+    featured: true
   }
 ];
 
@@ -200,17 +269,22 @@ const formatDate = (dateString: string) => {
 };
 
 const JobsPage: React.FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
   return (
     <div className="jobs-page">
       <Helmet>
-        <title>Careers | Seamless Edge Drywall</title>
+        <title>Careers & Job Opportunities | Seamless Edge Drywall</title>
         <meta name="description" content="Join our team of skilled craftsmen and professionals. View current job openings at Seamless Edge Drywall and Finishing." />
       </Helmet>
 
       <PageHero
         title="Join Our Team"
         subtitle="Explore career opportunities with Seamless Edge"
-        backgroundImage="/images/updated/team/team-working.jpg"
+        backgroundImage="/images/updated/services/sage-living-room.jpg"
       />
 
       <section className="py-16 bg-gray-50">
@@ -332,15 +406,18 @@ const JobsPage: React.FC = () => {
               We're always interested in connecting with talented individuals. Send us your resume, 
               and we'll keep it on file for future opportunities that match your skills and experience.
             </p>
-            <Link
-              to="/contact"
+            <button
+              onClick={openModal}
               className="inline-block px-8 py-3 bg-accent-gold text-white rounded-md hover:bg-accent-sage transition-colors text-lg font-medium"
             >
               Submit Open Application
-            </Link>
+            </button>
           </div>
         </div>
       </section>
+
+      {/* Resume Upload Modal */}
+      <ResumeUploadModal isOpen={isModalOpen} onClose={closeModal} />
     </div>
   );
 };

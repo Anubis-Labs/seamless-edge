@@ -18,7 +18,7 @@ const ServicesPage: React.FC = () => {
       <PageHero 
         title="Our Drywall Services" 
         subtitle="Premium drywall solutions with unmatched craftsmanship and attention to detail for residential and commercial spaces."
-        backgroundImage="/images/services/drywall-installation.jpg"
+        backgroundImage="/images/updated/services/modern-kitchen-sage.jpg"
       />
 
       {/* Detailed Service Descriptions */}

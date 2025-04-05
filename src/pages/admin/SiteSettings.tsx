@@ -1,821 +1,409 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet';
+import { toast } from 'react-toastify';
+import supabaseService from '../../services/supabaseService';
 import { 
-  FaCog, 
-  FaSave, 
-  FaGlobe, 
-  FaEnvelope, 
-  FaPhone, 
-  FaMapMarkerAlt, 
-  FaFacebook, 
-  FaTwitter, 
-  FaInstagram, 
-  FaLinkedin, 
-  FaPinterest,
-  FaYoutube,
-  FaCloudUploadAlt,
-  FaWindows
+  FaSave, FaSpinner, FaGlobe, FaEnvelope, FaPhone, FaMapMarkerAlt, 
+  FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPinterest, FaYoutube,
+  FaCloudUploadAlt, FaImage, FaTimes
 } from 'react-icons/fa';
 
-interface SiteSettings {
-  companyName: string;
-  tagline: string;
-  description: string;
-  contactEmail: string;
-  contactPhone: string;
-  address: string;
-  logoUrl: string;
-  faviconUrl: string;
-  socialMedia: {
-    facebook: string;
-    twitter: string;
-    instagram: string;
-    linkedin: string;
-    pinterest: string;
-    youtube: string;
-  };
-  businessHours: {
-    monday: string;
-    tuesday: string;
-    wednesday: string;
-    thursday: string;
-    friday: string;
-    saturday: string;
-    sunday: string;
-  };
-  googleMapsApiKey: string;
-  googleAnalyticsId: string;
-  theme: {
-    primaryColor: string;
-    secondaryColor: string;
-  };
-  seo: {
-    metaTitle: string;
-    metaDescription: string;
-    ogImage: string;
-  };
+// --- Interfaces for Settings Sections --- 
+interface GeneralSettings { companyName: string; tagline: string; description: string; logoUrl: string; faviconUrl: string; }
+interface ContactSettings { contactEmail: string; contactPhone: string; address: string; }
+interface SocialMediaSettings { facebook: string; twitter: string; instagram: string; linkedin: string; pinterest: string; youtube: string; }
+interface BusinessHoursSettings { monday: string; tuesday: string; wednesday: string; thursday: string; friday: string; saturday: string; sunday: string; }
+interface AppearanceSettings { primaryColor: string; secondaryColor: string; }
+interface SeoSettings { metaTitle: string; metaDescription: string; ogImage: string; }
+interface IntegrationSettings { googleMapsApiKey: string; googleAnalyticsId: string; }
+
+// Type for the state holding all settings sections
+interface AllSettings {
+    general: GeneralSettings;
+    contact: ContactSettings;
+    social: SocialMediaSettings;
+    hours: BusinessHoursSettings;
+    appearance: AppearanceSettings;
+    seo: SeoSettings;
+    integrations: IntegrationSettings;
 }
 
+// Default state structure
+const defaultSettings: AllSettings = {
+    general: { companyName: 'Seamless Edge', tagline: '', description: '', logoUrl: '/logo.png', faviconUrl: '/favicon.ico' },
+    contact: { contactEmail: '', contactPhone: '', address: '' },
+    social: { facebook: '', twitter: '', instagram: '', linkedin: '', pinterest: '', youtube: '' },
+    hours: { monday: '8am-5pm', tuesday: '8am-5pm', wednesday: '8am-5pm', thursday: '8am-5pm', friday: '8am-5pm', saturday: 'Closed', sunday: 'Closed' },
+    appearance: { primaryColor: '#3D5734', secondaryColor: '#1B365D' },
+    seo: { metaTitle: '', metaDescription: '', ogImage: '' },
+    integrations: { googleMapsApiKey: '', googleAnalyticsId: '' }
+};
+
+type SettingsSectionKey = keyof AllSettings;
+// Type for mapping form field names to their section and setting key
+type FileUploadFieldMap = 'logoUrl' | 'faviconUrl' | 'ogImage';
+
 const SiteSettings: React.FC = () => {
-  const [settings, setSettings] = useState<SiteSettings>({
-    companyName: 'Seamless Edge',
-    tagline: 'Premium Home Remodeling & Renovation',
-    description: 'Seamless Edge is a premium home remodeling and renovation company serving the Seattle area. We specialize in kitchen remodels, bathroom renovations, and complete home makeovers.',
-    contactEmail: 'info@seamlessedge.com',
-    contactPhone: '(206) 555-1234',
-    address: '123 Main Street, Seattle, WA 98101',
-    logoUrl: '/logo.png',
-    faviconUrl: '/favicon.ico',
-    socialMedia: {
-      facebook: 'https://facebook.com/seamlessedge',
-      twitter: 'https://twitter.com/seamlessedge',
-      instagram: 'https://instagram.com/seamlessedge',
-      linkedin: 'https://linkedin.com/company/seamlessedge',
-      pinterest: 'https://pinterest.com/seamlessedge',
-      youtube: 'https://youtube.com/c/seamlessedge'
-    },
-    businessHours: {
-      monday: '8:00 AM - 5:00 PM',
-      tuesday: '8:00 AM - 5:00 PM',
-      wednesday: '8:00 AM - 5:00 PM',
-      thursday: '8:00 AM - 5:00 PM',
-      friday: '8:00 AM - 5:00 PM',
-      saturday: '10:00 AM - 3:00 PM',
-      sunday: 'Closed'
-    },
-    googleMapsApiKey: '',
-    googleAnalyticsId: 'UA-XXXXXXXXX-X',
-    theme: {
-      primaryColor: '#3D5734',
-      secondaryColor: '#1B365D'
-    },
-    seo: {
-      metaTitle: 'Seamless Edge | Premium Home Remodeling & Renovation',
-      metaDescription: 'Seattle\'s top-rated home remodeling and renovation company. Specializing in kitchen, bathroom, and complete home transformations.',
-      ogImage: '/og-image.jpg'
-    }
-  });
-  
-  const [activeTab, setActiveTab] = useState('general');
-  const [loading, setLoading] = useState(true);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [settings, setSettings] = useState<AllSettings>(defaultSettings);
+  const [activeTab, setActiveTab] = useState<SettingsSectionKey>('general');
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
-  useEffect(() => {
-    // In a real implementation, this would fetch from Supabase
-    const storedSettings = localStorage.getItem('seamlessedge_site_settings');
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    } else {
-      // Store initial settings in localStorage for development
-      localStorage.setItem('seamlessedge_site_settings', JSON.stringify(settings));
+  const [isUploading, setIsUploading] = useState<FileUploadFieldMap | null>(null); // Track which field is uploading
+  const [error, setError] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
+
+  // --- Data Fetching --- 
+  const fetchAllSettings = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    const sectionKeys = Object.keys(defaultSettings) as SettingsSectionKey[];
+    // Deep clone default settings to avoid mutation issues
+    let loadedSettings = JSON.parse(JSON.stringify(defaultSettings)) as AllSettings;
+
+    try {
+        const promises = sectionKeys.map(key => 
+            supabaseService.settings.getSectionSettings(`site_${key}`)
+        );
+        const results = await Promise.allSettled(promises);
+
+        results.forEach((result, index) => {
+            const key = sectionKeys[index];
+            if (result.status === 'fulfilled' && result.value && Object.keys(result.value).length > 0) {
+                 // Explicitly merge fetched data into the correct section
+                 const fetchedSectionData = result.value;
+                 const targetSection = loadedSettings[key];
+                 for (const fetchedKey in fetchedSectionData) {
+                     // Check if the key exists in the target section to maintain type structure
+                     if (Object.prototype.hasOwnProperty.call(targetSection, fetchedKey)) {
+                         // Assign the fetched value, ensuring type safety (though any cast might be needed for complex cases)
+                         (targetSection as any)[fetchedKey] = fetchedSectionData[fetchedKey];
+                     }
+                 }
+            } else if (result.status === 'rejected') {
+                 console.warn(`Failed to load settings for section '${key}':`, result.reason);
+            }
+        });
+        
+        setSettings(loadedSettings);
+
+    } catch (err: any) {
+        console.error("Error fetching site settings:", err);
+        setError('Failed to load some settings. Displaying defaults where needed.');
+        toast.error('Failed to load some settings.');
+        // Fallback might need deep clone too if mutation is a concern
+        setSettings(JSON.parse(JSON.stringify(defaultSettings)));
+    } finally {
+        setIsLoading(false);
+        setHasChanges(false);
     }
-    
-    setLoading(false);
-  }, []);
-  
+}, []);
+
+  useEffect(() => {
+    fetchAllSettings();
+  }, [fetchAllSettings]);
+
+  // --- State Updates --- 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, 
-    section?: keyof SiteSettings, 
-    subfield?: string
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    section: SettingsSectionKey
   ) => {
     const { name, value } = e.target;
-    
-    if (section && subfield) {
-      // For nested objects like socialMedia.facebook
-      setSettings(prev => {
-        const prevSection = prev[section] as Record<string, any>;
-        return {
-          ...prev,
-          [section]: {
-            ...prevSection,
-            [subfield]: value
-          }
-        };
-      });
-    } else if (section) {
-      // For objects like theme.primaryColor
-      setSettings(prev => {
-        const prevSection = prev[section] as Record<string, any>;
-        return {
-          ...prev,
-          [section]: {
-            ...prevSection,
-            [name]: value
-          }
-        };
-      });
-    } else {
-      // For top-level fields like companyName
-      setSettings(prev => ({
-        ...prev,
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
         [name]: value
-      }));
-    }
-    
+      }
+    }));
     setHasChanges(true);
   };
-  
-  const handleSave = () => {
-    setIsSaving(true);
-    
-    // In a real implementation, this would save to Supabase
-    // For now, just store in localStorage and simulate a delay
-    setTimeout(() => {
-      localStorage.setItem('seamlessedge_site_settings', JSON.stringify(settings));
-      setIsSaving(false);
-      setHasChanges(false);
-      alert('Settings saved successfully!');
-    }, 800);
+
+  // Trigger hidden file input click
+  const handleUploadButtonClick = (fieldName: FileUploadFieldMap) => {
+    if (fileInputRef.current) {
+        // Set data attribute to know which field we're uploading for
+        fileInputRef.current.setAttribute('data-field-name', fieldName);
+        fileInputRef.current.click();
+    }
   };
-  
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-forest"></div>
-      </div>
-    );
+
+  // Handle file selection and upload
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const fieldName = event.target.getAttribute('data-field-name') as FileUploadFieldMap | null;
+
+    if (!file || !fieldName) {
+      return; // No file selected or field name missing
+    }
+
+    // Reset file input value to allow re-uploading the same file
+    event.target.value = ''; 
+
+    // Determine which section the field belongs to
+    let sectionKey: SettingsSectionKey;
+    if (fieldName === 'logoUrl' || fieldName === 'faviconUrl') {
+        sectionKey = 'general';
+    } else if (fieldName === 'ogImage') {
+        sectionKey = 'seo';
+    } else {
+        console.error('Invalid field name for file upload:', fieldName);
+        return;
+    }
+
+    setIsUploading(fieldName);
+    toast.info(`Uploading ${fieldName}...`);
+
+    try {
+        // Suggest a file path within the bucket
+        const filePath = `${sectionKey}/${fieldName}_${file.name}`;
+        // Upload using the storage service
+        const uploadedPath = await supabaseService.storage.uploadFile(file, 'site-assets', filePath, { upsert: true });
+        
+        // Get the public URL
+        const { publicUrl } = supabaseService.storage.getPublicUrl(uploadedPath, 'site-assets');
+
+        if (!publicUrl) {
+             throw new Error('Failed to get public URL after upload.');
+        }
+        
+        // Update the state
+        setSettings(prev => ({
+            ...prev,
+            [sectionKey]: {
+                ...prev[sectionKey],
+                [fieldName]: publicUrl
+            }
+        }));
+        setHasChanges(true);
+        toast.success(`${fieldName} uploaded successfully!`);
+
+    } catch (error: any) {
+        console.error(`Error uploading ${fieldName}:`, error);
+        toast.error(`Upload failed for ${fieldName}: ${error.message}`);
+    } finally {
+        setIsUploading(null);
+    }
+  };
+
+  // --- Save Logic --- 
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    let success = true;
+    try {
+        // Save each section individually
+        const savePromises = (Object.keys(settings) as SettingsSectionKey[]).map(key => 
+            supabaseService.settings.updateSettings(`site_${key}`, settings[key])
+        );
+        const results = await Promise.allSettled(savePromises);
+
+        results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                const key = (Object.keys(settings) as SettingsSectionKey[])[index];
+                console.error(`Failed to save section '${key}':`, result.reason);
+                toast.error(`Error saving ${key} settings.`);
+                success = false; // Mark overall save as failed if any part fails
+            }
+        });
+
+        if (success) {
+            toast.success('Site settings saved successfully!');
+            setHasChanges(false);
+        } else {
+             setError('Failed to save some settings. Please check console and try again.');
+        }
+
+    } catch (err: any) { // Catch potential errors in Promise.allSettled
+      console.error("Error during bulk settings save:", err);
+      setError('An unexpected error occurred during save.');
+      toast.error('An unexpected error occurred during save.');
+      success = false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Render Logic --- 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><FaSpinner className="animate-spin h-12 w-12 text-accent-forest" /></div>;
   }
+
+  // Get settings for the currently active tab
+  const currentTabData = settings[activeTab];
+
+  // Component for rendering file input with preview
+  const FileUploadInput: React.FC<{ 
+      label: string; 
+      fieldName: FileUploadFieldMap;
+      currentValue: string;
+      sectionKey: SettingsSectionKey;
+      accept?: string; // e.g., "image/*", ".ico"
+  }> = ({ label, fieldName, currentValue, sectionKey, accept="image/*" }) => {
+      const isCurrentlyUploading = isUploading === fieldName;
+      return (
+          <div>
+              <label className="block text-sm font-medium text-gray-700">{label}</label>
+              <div className="mt-1 flex items-center space-x-4">
+                   {/* Preview Area */} 
+                   <div className="flex-shrink-0 h-16 w-16 border border-gray-300 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden">
+                       {currentValue ? (
+                           <img src={currentValue} alt={`${label} preview`} className="h-full w-full object-contain" />
+                       ) : (
+                           <FaImage className="h-8 w-8 text-gray-400" />
+                       )}
+                   </div>
+                    {/* Input and Upload Button */} 
+                   <div className="flex-grow">
+                       <input 
+                           type="text" 
+                           name={fieldName} 
+                           className="w-full border rounded-md p-2 bg-gray-100 text-sm" 
+                           value={currentValue} 
+                           readOnly // URL is managed by upload
+                           placeholder="Upload an image..."
+                       />
+                       <button 
+                           type="button" 
+                           onClick={() => handleUploadButtonClick(fieldName)} 
+                           disabled={isSaving || isCurrentlyUploading}
+                           className={`mt-2 px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center ${isSaving || isCurrentlyUploading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                       >
+                           {isCurrentlyUploading ? (
+                               <><FaSpinner className="animate-spin h-4 w-4 mr-1"/> Uploading...</>
+                           ) : (
+                               <><FaCloudUploadAlt className="mr-1" /> {currentValue ? 'Change' : 'Upload'}</>
+                           )}
+                       </button>
+                   </div>
+               </div>
+           </div>
+      );
+  };
 
   return (
     <>
-      <Helmet>
-        <title>Site Settings | Seamless Edge Admin</title>
-      </Helmet>
-      
+      <Helmet><title>Site Settings | Admin</title></Helmet>
+
+      {/* Hidden file input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        style={{ display: 'none' }} 
+        accept="image/*,.ico" // Accept common image types and ico
+      />
+
+      {/* Header & Save Button */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Site Settings</h1>
-          <p className="text-gray-600">Configure your website's settings and appearance.</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Site Settings</h1>
+            <p className="text-gray-600">Configure global website settings.</p>
         </div>
-        
-        <button
-          onClick={handleSave}
-          disabled={isSaving || !hasChanges}
-          className={`mt-4 md:mt-0 px-4 py-2 rounded-lg flex items-center ${
-            isSaving || !hasChanges 
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-              : 'bg-accent-forest text-white hover:bg-accent-forest-dark'
-          }`}
-        >
-          {isSaving ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-              Saving...
-            </>
-          ) : (
-            <>
-              <FaSave className="mr-2" /> Save Changes
-            </>
-          )}
+        <button onClick={handleSave} disabled={isSaving || isUploading !== null || !hasChanges} className={`mt-4 md:mt-0 px-4 py-2 rounded-lg flex items-center ${ (isSaving || isUploading !== null || !hasChanges) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-accent-forest text-white hover:bg-accent-forest-dark' } transition-colors`}>
+            {isSaving ? (<><FaSpinner className="animate-spin h-5 w-5 mr-2"/>Saving...</>) : (<><FaSave className="mr-2" /> Save Changes</>)}
         </button>
       </div>
-      
+      {error && (<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">{error}</div>)}
+
+      {/* Tabs & Content Area */}
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        {/* Tabs */}
-        <div className="border-b">
+        {/* Tabs Navigation */}
+        <div className="border-b border-gray-200">
           <div className="flex overflow-x-auto">
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'general' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('general')}
-            >
-              General
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'contact' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('contact')}
-            >
-              Contact Info
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'social' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('social')}
-            >
-              Social Media
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'hours' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('hours')}
-            >
-              Business Hours
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'appearance' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('appearance')}
-            >
-              Appearance
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'seo' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('seo')}
-            >
-              SEO
-            </button>
-            <button
-              className={`px-6 py-3 font-medium text-sm focus:outline-none ${
-                activeTab === 'integrations' 
-                  ? 'border-b-2 border-accent-forest text-accent-forest' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('integrations')}
-            >
-              Integrations
-            </button>
+            {(Object.keys(settings) as SettingsSectionKey[]).map((key) => (
+                <button
+                    key={key}
+                    className={`px-6 py-3 font-medium text-sm focus:outline-none capitalize whitespace-nowrap ${ activeTab === key ? 'border-b-2 border-accent-forest text-accent-forest' : 'text-gray-500 hover:text-gray-700' }`}
+                    onClick={() => setActiveTab(key)}
+                    disabled={isSaving || isUploading !== null} 
+                >
+                    {key}
+                </button>
+            ))}
           </div>
         </div>
-        
-        {/* Tab Content */}
+
+        {/* Tab Content Area */} 
         <div className="p-6">
-          {/* General Settings */}
-          {activeTab === 'general' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Company Name</label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.companyName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Tagline</label>
-                  <input
-                    type="text"
-                    name="tagline"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.tagline}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-gray-700 font-medium mb-2">Company Description</label>
-                  <textarea
-                    name="description"
-                    rows={4}
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.description}
-                    onChange={handleInputChange}
-                  ></textarea>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Logo URL</label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      name="logoUrl"
-                      className="flex-1 border border-gray-300 rounded-l-lg p-2"
-                      value={settings.logoUrl}
-                      onChange={handleInputChange}
-                    />
-                    <button className="bg-gray-100 text-gray-700 px-4 rounded-r-lg border border-l-0 border-gray-300 hover:bg-gray-200">
-                      <FaCloudUploadAlt />
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    In a production system, this would be a file upload component.
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Favicon URL</label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      name="faviconUrl"
-                      className="flex-1 border border-gray-300 rounded-l-lg p-2"
-                      value={settings.faviconUrl}
-                      onChange={handleInputChange}
-                    />
-                    <button className="bg-gray-100 text-gray-700 px-4 rounded-r-lg border border-l-0 border-gray-300 hover:bg-gray-200">
-                      <FaCloudUploadAlt />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Contact Info */}
-          {activeTab === 'contact' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    <FaEnvelope className="inline mr-2 text-gray-600" />
-                    Contact Email
-                  </label>
-                  <input
-                    type="email"
-                    name="contactEmail"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.contactEmail}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    <FaPhone className="inline mr-2 text-gray-600" />
-                    Contact Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    name="contactPhone"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.contactPhone}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-gray-700 font-medium mb-2">
-                    <FaMapMarkerAlt className="inline mr-2 text-gray-600" />
-                    Address
-                  </label>
-                  <textarea
-                    name="address"
-                    rows={2}
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.address}
-                    onChange={handleInputChange}
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Social Media */}
-          {activeTab === 'social' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="flex items-center text-gray-700 font-medium mb-2">
-                    <FaFacebook className="text-blue-600 mr-2" />
-                    Facebook URL
-                  </label>
-                  <input
-                    type="url"
-                    name="facebook"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.socialMedia.facebook}
-                    onChange={(e) => handleInputChange(e, 'socialMedia', 'facebook')}
-                    placeholder="https://facebook.com/yourpage"
-                  />
-                </div>
-                
-                <div>
-                  <label className="flex items-center text-gray-700 font-medium mb-2">
-                    <FaTwitter className="text-blue-400 mr-2" />
-                    Twitter URL
-                  </label>
-                  <input
-                    type="url"
-                    name="twitter"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.socialMedia.twitter}
-                    onChange={(e) => handleInputChange(e, 'socialMedia', 'twitter')}
-                    placeholder="https://twitter.com/yourhandle"
-                  />
-                </div>
-                
-                <div>
-                  <label className="flex items-center text-gray-700 font-medium mb-2">
-                    <FaInstagram className="text-pink-600 mr-2" />
-                    Instagram URL
-                  </label>
-                  <input
-                    type="url"
-                    name="instagram"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.socialMedia.instagram}
-                    onChange={(e) => handleInputChange(e, 'socialMedia', 'instagram')}
-                    placeholder="https://instagram.com/yourhandle"
-                  />
-                </div>
-                
-                <div>
-                  <label className="flex items-center text-gray-700 font-medium mb-2">
-                    <FaLinkedin className="text-blue-700 mr-2" />
-                    LinkedIn URL
-                  </label>
-                  <input
-                    type="url"
-                    name="linkedin"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.socialMedia.linkedin}
-                    onChange={(e) => handleInputChange(e, 'socialMedia', 'linkedin')}
-                    placeholder="https://linkedin.com/company/yourcompany"
-                  />
-                </div>
-                
-                <div>
-                  <label className="flex items-center text-gray-700 font-medium mb-2">
-                    <FaPinterest className="text-red-600 mr-2" />
-                    Pinterest URL
-                  </label>
-                  <input
-                    type="url"
-                    name="pinterest"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.socialMedia.pinterest}
-                    onChange={(e) => handleInputChange(e, 'socialMedia', 'pinterest')}
-                    placeholder="https://pinterest.com/yourhandle"
-                  />
-                </div>
-                
-                <div>
-                  <label className="flex items-center text-gray-700 font-medium mb-2">
-                    <FaYoutube className="text-red-600 mr-2" />
-                    YouTube Channel URL
-                  </label>
-                  <input
-                    type="url"
-                    name="youtube"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.socialMedia.youtube}
-                    onChange={(e) => handleInputChange(e, 'socialMedia', 'youtube')}
-                    placeholder="https://youtube.com/c/yourchannel"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Business Hours */}
-          {activeTab === 'hours' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Monday</label>
-                  <input
-                    type="text"
-                    name="monday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.monday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'monday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Tuesday</label>
-                  <input
-                    type="text"
-                    name="tuesday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.tuesday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'tuesday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Wednesday</label>
-                  <input
-                    type="text"
-                    name="wednesday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.wednesday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'wednesday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Thursday</label>
-                  <input
-                    type="text"
-                    name="thursday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.thursday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'thursday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Friday</label>
-                  <input
-                    type="text"
-                    name="friday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.friday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'friday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Saturday</label>
-                  <input
-                    type="text"
-                    name="saturday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.saturday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'saturday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Sunday</label>
-                  <input
-                    type="text"
-                    name="sunday"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.businessHours.sunday}
-                    onChange={(e) => handleInputChange(e, 'businessHours', 'sunday')}
-                    placeholder="9:00 AM - 5:00 PM or Closed"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Appearance */}
-          {activeTab === 'appearance' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Primary Color</label>
-                  <div className="flex items-center">
-                    <input
-                      type="color"
-                      name="primaryColor"
-                      className="h-10 w-10 border border-gray-300 rounded cursor-pointer"
-                      value={settings.theme.primaryColor}
-                      onChange={(e) => handleInputChange(e, 'theme')}
-                    />
-                    <input
-                      type="text"
-                      name="primaryColor"
-                      className="flex-1 ml-3 border border-gray-300 rounded-lg p-2"
-                      value={settings.theme.primaryColor}
-                      onChange={(e) => handleInputChange(e, 'theme')}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Used for main buttons, accents, and highlights
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Secondary Color</label>
-                  <div className="flex items-center">
-                    <input
-                      type="color"
-                      name="secondaryColor"
-                      className="h-10 w-10 border border-gray-300 rounded cursor-pointer"
-                      value={settings.theme.secondaryColor}
-                      onChange={(e) => handleInputChange(e, 'theme')}
-                    />
-                    <input
-                      type="text"
-                      name="secondaryColor"
-                      className="flex-1 ml-3 border border-gray-300 rounded-lg p-2"
-                      value={settings.theme.secondaryColor}
-                      onChange={(e) => handleInputChange(e, 'theme')}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Used for secondary elements and accents
-                  </p>
-                </div>
-              </div>
-              
-              <div className="border-t pt-6 mt-6">
-                <h3 className="text-lg font-medium mb-4">Color Preview</h3>
-                <div className="flex flex-wrap gap-4">
-                  <div className="text-center">
-                    <div 
-                      className="w-20 h-20 rounded-lg shadow-md mb-2" 
-                      style={{ backgroundColor: settings.theme.primaryColor }}
-                    ></div>
-                    <span className="text-sm">Primary</span>
-                  </div>
-                  <div className="text-center">
-                    <div 
-                      className="w-20 h-20 rounded-lg shadow-md mb-2" 
-                      style={{ backgroundColor: settings.theme.secondaryColor }}
-                    ></div>
-                    <span className="text-sm">Secondary</span>
-                  </div>
-                  <div className="text-center">
-                    <div 
-                      className="w-20 h-20 rounded-lg flex items-center justify-center text-white font-bold shadow-md mb-2" 
-                      style={{ backgroundColor: settings.theme.primaryColor }}
-                    >
-                      Button
+            {/* General Settings Tab */}
+            {activeTab === 'general' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label className="block text-sm font-medium text-gray-700">Company Name</label><input type="text" name="companyName" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.general.companyName} onChange={e => handleInputChange(e, 'general')} disabled={isSaving || isUploading !== null} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700">Tagline</label><input type="text" name="tagline" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.general.tagline} onChange={e => handleInputChange(e, 'general')} disabled={isSaving || isUploading !== null} /></div>
+                        <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700">Description</label><textarea name="description" rows={4} className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.general.description} onChange={e => handleInputChange(e, 'general')} disabled={isSaving || isUploading !== null}></textarea></div>
+                        <FileUploadInput label="Logo" fieldName="logoUrl" currentValue={settings.general.logoUrl} sectionKey="general" accept="image/png, image/jpeg, image/svg+xml" />
+                        <FileUploadInput label="Favicon" fieldName="faviconUrl" currentValue={settings.general.faviconUrl} sectionKey="general" accept=".ico, image/png" />
                     </div>
-                    <span className="text-sm">Button</span>
-                  </div>
-                  <div className="text-center">
-                    <div 
-                      className="w-20 h-20 rounded-lg border-2 flex items-center justify-center font-bold shadow-md mb-2" 
-                      style={{ borderColor: settings.theme.primaryColor, color: settings.theme.primaryColor }}
-                    >
-                      Btn
-                    </div>
-                    <span className="text-sm">Outlined</span>
-                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-          
-          {/* SEO */}
-          {activeTab === 'seo' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Meta Title</label>
-                  <input
-                    type="text"
-                    name="metaTitle"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.seo.metaTitle}
-                    onChange={(e) => handleInputChange(e, 'seo')}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The title that appears in search engine results (max 60 characters)
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Meta Description</label>
-                  <textarea
-                    name="metaDescription"
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.seo.metaDescription}
-                    onChange={(e) => handleInputChange(e, 'seo')}
-                  ></textarea>
-                  <p className="text-xs text-gray-500 mt-1">
-                    The description that appears in search engine results (max 160 characters)
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Open Graph Image URL</label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      name="ogImage"
-                      className="flex-1 border border-gray-300 rounded-l-lg p-2"
-                      value={settings.seo.ogImage}
-                      onChange={(e) => handleInputChange(e, 'seo')}
-                    />
-                    <button className="bg-gray-100 text-gray-700 px-4 rounded-r-lg border border-l-0 border-gray-300 hover:bg-gray-200">
-                      <FaCloudUploadAlt />
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Image displayed when your site is shared on social media (recommended size: 1200x630px)
-                  </p>
-                </div>
-                
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium mb-4">SEO Preview</h3>
-                  <div className="bg-white border rounded-lg p-4 max-w-2xl">
-                    <div className="text-xl text-blue-800 font-medium">{settings.seo.metaTitle}</div>
-                    <div className="text-sm text-green-800">https://www.seamlessedge.com/</div>
-                    <div className="text-sm text-gray-800 mt-1">{settings.seo.metaDescription}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Integrations */}
-          {activeTab === 'integrations' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Google Maps API Key</label>
-                  <input
-                    type="text"
-                    name="googleMapsApiKey"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.googleMapsApiKey}
-                    onChange={handleInputChange}
-                    placeholder="Enter your Google Maps API Key"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Required for displaying maps on your contact page and locations
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">Google Analytics ID</label>
-                  <input
-                    type="text"
-                    name="googleAnalyticsId"
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    value={settings.googleAnalyticsId}
-                    onChange={handleInputChange}
-                    placeholder="UA-XXXXXXXXX-X or G-XXXXXXXXXX"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Required for tracking website traffic with Google Analytics
-                  </p>
-                </div>
-                
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium mb-4">Email Integration</h3>
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <FaWindows className="text-blue-600 mr-3 text-xl" />
-                      <div>
-                        <div className="font-medium text-blue-800">Microsoft Outlook Integration</div>
-                        <div className="text-sm text-blue-700">
-                          Email integration is configured in the Messages Management section.
-                        </div>
+            )}
+            {/* Contact Settings Tab */}
+            {activeTab === 'contact' && (
+                 <div className="space-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div><label className="flex items-center text-sm font-medium text-gray-700"><FaEnvelope className="inline mr-2 text-gray-400" /> Contact Email</label><input type="email" name="contactEmail" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.contact.contactEmail} onChange={e => handleInputChange(e, 'contact')} disabled={isSaving || isUploading !== null} /></div>
+                         <div><label className="flex items-center text-sm font-medium text-gray-700"><FaPhone className="inline mr-2 text-gray-400" /> Contact Phone</label><input type="text" name="contactPhone" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.contact.contactPhone} onChange={e => handleInputChange(e, 'contact')} disabled={isSaving || isUploading !== null} /></div>
+                         <div className="md:col-span-2"><label className="flex items-center text-sm font-medium text-gray-700"><FaMapMarkerAlt className="inline mr-2 text-gray-400" /> Address</label><textarea name="address" rows={2} className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.contact.address} onChange={e => handleInputChange(e, 'contact')} disabled={isSaving || isUploading !== null}></textarea></div>
+                     </div>
+                 </div>
+            )}
+            {/* Social Settings Tab */}
+            {activeTab === 'social' && (
+                 <div className="space-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div><label className="flex items-center text-sm font-medium text-gray-700"><FaFacebook className="inline mr-2 text-blue-600" /> Facebook URL</label><input type="url" name="facebook" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.social.facebook} onChange={e => handleInputChange(e, 'social')} placeholder="https://..." disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="flex items-center text-sm font-medium text-gray-700"><FaTwitter className="inline mr-2 text-sky-500" /> Twitter URL</label><input type="url" name="twitter" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.social.twitter} onChange={e => handleInputChange(e, 'social')} placeholder="https://..." disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="flex items-center text-sm font-medium text-gray-700"><FaInstagram className="inline mr-2 text-pink-500" /> Instagram URL</label><input type="url" name="instagram" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.social.instagram} onChange={e => handleInputChange(e, 'social')} placeholder="https://..." disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="flex items-center text-sm font-medium text-gray-700"><FaLinkedin className="inline mr-2 text-blue-700" /> LinkedIn URL</label><input type="url" name="linkedin" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.social.linkedin} onChange={e => handleInputChange(e, 'social')} placeholder="https://..." disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="flex items-center text-sm font-medium text-gray-700"><FaPinterest className="inline mr-2 text-red-600" /> Pinterest URL</label><input type="url" name="pinterest" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.social.pinterest} onChange={e => handleInputChange(e, 'social')} placeholder="https://..." disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="flex items-center text-sm font-medium text-gray-700"><FaYoutube className="inline mr-2 text-red-500" /> YouTube URL</label><input type="url" name="youtube" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.social.youtube} onChange={e => handleInputChange(e, 'social')} placeholder="https://..." disabled={isSaving || isUploading !== null} /></div>
+                     </div>
+                 </div>
+            )}
+            {/* Business Hours Tab */}
+             {activeTab === 'hours' && (
+                 <div className="space-y-6">
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                         {(Object.keys(settings.hours) as Array<keyof BusinessHoursSettings>).map(day => (
+                              <div key={day}><label className="block text-sm font-medium text-gray-700 capitalize">{day}</label><input type="text" name={day} className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.hours[day]} onChange={e => handleInputChange(e, 'hours')} placeholder="e.g., 9am-5pm" disabled={isSaving || isUploading !== null} /></div>
+                         ))}
+                     </div>
+                 </div>
+             )}
+             {/* Appearance Tab */}
+             {activeTab === 'appearance' && (
+                  <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div><label className="block text-sm font-medium text-gray-700">Primary Color</label><div className="flex items-center mt-1"><input type="color" name="primaryColor" className="h-10 w-10 p-0 border rounded-md cursor-pointer disabled:opacity-50" value={settings.appearance.primaryColor} onChange={e => handleInputChange(e, 'appearance')} disabled={isSaving || isUploading !== null} /><input type="text" name="primaryColor" className="flex-1 ml-3 border rounded p-2 disabled:bg-gray-100" value={settings.appearance.primaryColor} onChange={e => handleInputChange(e, 'appearance')} disabled={isSaving || isUploading !== null} /></div></div>
+                           <div><label className="block text-sm font-medium text-gray-700">Secondary Color</label><div className="flex items-center mt-1"><input type="color" name="secondaryColor" className="h-10 w-10 p-0 border rounded-md cursor-pointer disabled:opacity-50" value={settings.appearance.secondaryColor} onChange={e => handleInputChange(e, 'appearance')} disabled={isSaving || isUploading !== null} /><input type="text" name="secondaryColor" className="flex-1 ml-3 border rounded p-2 disabled:bg-gray-100" value={settings.appearance.secondaryColor} onChange={e => handleInputChange(e, 'appearance')} disabled={isSaving || isUploading !== null} /></div></div>
                       </div>
-                    </div>
-                    <div className="mt-3">
-                      <button
-                        onClick={() => window.location.href = '/admin/messages'}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center"
-                      >
-                        <FaCog className="mr-2" /> Configure Email Integration
-                      </button>
-                    </div>
+                      {/* Preview */}
+                       <div className="border-t pt-6 mt-6"><h3 className="text-lg font-medium text-gray-800 mb-4">Preview</h3><div className="flex flex-wrap gap-4"><div className="text-center"><div className="w-20 h-20 rounded-md border flex items-center justify-center" style={{ backgroundColor: settings.appearance.primaryColor }}></div><span className="text-xs mt-1 block text-gray-600">Primary</span></div><div className="text-center"><div className="w-20 h-20 rounded-md border flex items-center justify-center" style={{ backgroundColor: settings.appearance.secondaryColor }}></div><span className="text-xs mt-1 block text-gray-600">Secondary</span></div></div></div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+             )}
+             {/* SEO Tab */}
+            {activeTab === 'seo' && (
+                 <div className="space-y-6">
+                     <div className="grid grid-cols-1 gap-6">
+                          <div><label className="block text-sm font-medium text-gray-700">Meta Title</label><input type="text" name="metaTitle" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.seo.metaTitle} onChange={e => handleInputChange(e, 'seo')} disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="block text-sm font-medium text-gray-700">Meta Description</label><textarea name="metaDescription" rows={3} className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.seo.metaDescription} onChange={e => handleInputChange(e, 'seo')} disabled={isSaving || isUploading !== null}></textarea></div>
+                          <FileUploadInput label="Open Graph Image" fieldName="ogImage" currentValue={settings.seo.ogImage} sectionKey="seo" accept="image/png, image/jpeg" />
+                          <div className="border-t pt-6 mt-6"><h3 className="text-lg font-medium text-gray-800 mb-4">Search Result Preview</h3><div className="bg-white border rounded-md p-4 max-w-xl mx-auto shadow-sm"><div className="text-xl text-blue-800 truncate group-hover:underline">{settings.seo.metaTitle || '[Your Website Title]'}</div><div className="text-sm text-green-700 truncate">{window.location.origin}</div><div className="text-sm text-gray-600 line-clamp-2">{settings.seo.metaDescription || '[Your website description will appear here. Optimize it for relevant keywords.]'}</div></div></div>
+                     </div>
+                 </div>
+             )}
+             {/* Integrations Tab */}
+             {activeTab === 'integrations' && (
+                 <div className="space-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div><label className="block text-sm font-medium text-gray-700">Google Maps API Key</label><input type="text" name="googleMapsApiKey" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.integrations.googleMapsApiKey} onChange={e => handleInputChange(e, 'integrations')} disabled={isSaving || isUploading !== null} /></div>
+                          <div><label className="block text-sm font-medium text-gray-700">Google Analytics ID</label><input type="text" name="googleAnalyticsId" className="mt-1 w-full border rounded p-2 disabled:bg-gray-100" value={settings.integrations.googleAnalyticsId} onChange={e => handleInputChange(e, 'integrations')} placeholder="UA-XXXX... or G-XXXX..." disabled={isSaving || isUploading !== null} /></div>
+                     </div>
+                 </div>
+             )}
         </div>
+
       </div>
     </>
   );

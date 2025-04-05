@@ -106,9 +106,9 @@ const PageHero: React.FC<PageHeroProps> = ({
       
       {/* Content */}
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <div className="flex flex-col md:flex-row gap-8">
           <motion.div 
-            className="md:col-span-3"
+            className="flex-1 md:w-3/5"
             style={{ opacity }}
           >
             {/* Hero title with word-by-word animation */}
@@ -152,7 +152,7 @@ const PageHero: React.FC<PageHeroProps> = ({
           {/* Agent Chat Button */}
           {showAIAssistant && (
             <motion.div
-              className="md:col-span-2 flex md:justify-end items-start"
+              className="hidden md:flex flex-shrink-0 md:w-2/5 justify-center md:justify-end items-start"
               style={{ y: y2 }}
             >
               <motion.div

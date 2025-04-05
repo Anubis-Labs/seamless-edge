@@ -1,12 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import FAQ, { sampleFAQs } from '../components/common/FAQ';
 import CallToAction from '../components/common/CallToAction';
 import ProjectTimelineVisualizer from '../components/services/ProjectTimelineVisualizer';
 import PageHero from '../components/common/PageHero';
+import supabaseService from '../services/supabaseService';
+import { FaSpinner, FaTools, FaPaintRoller, FaWrench, FaDraftingCompass } from 'react-icons/fa';
+
+interface Service {
+    id: number;
+    name: string;
+    description: string;
+    features: string[];
+    image?: string;
+    image_url?: string;
+    icon?: string;
+    category?: string;
+}
+
+const iconMap: { [key: string]: React.ComponentType<any> } = {
+    FaTools: FaTools,
+    FaPaintRoller: FaPaintRoller,
+    FaWrench: FaWrench,
+    FaDraftingCompass: FaDraftingCompass,
+};
+
+const GetIconComponent = ({ iconName }: { iconName?: string }) => {
+    if (!iconName || !iconMap[iconName]) {
+        return <FaTools />;
+    }
+    const IconComponent = iconMap[iconName];
+    return <IconComponent className="h-8 w-8 text-accent-navy" />;
+};
 
 const ServicesPage: React.FC = () => {
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedServices = await supabaseService.services.getServices();
+        // Process data to ensure all services have required fields
+        const processedServices = (fetchedServices as Service[] || []).map(service => ({
+          ...service,
+          category: service.category || 'General', // Set default category if missing
+          features: service.features || [] // Ensure features is an array
+        }));
+        setServices(processedServices);
+      } catch (err: any) {
+        console.error("Error fetching services:", err);
+        setError("Failed to load services. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
   return (
     <>
       <Helmet>
@@ -21,170 +77,67 @@ const ServicesPage: React.FC = () => {
         backgroundImage="/images/updated/services/modern-kitchen-sage.jpg"
       />
 
-      {/* Detailed Service Descriptions */}
+      {/* Detailed Service Descriptions - Fetched from Supabase */}
       <section className="py-16 bg-gradient-to-b from-neutral-offwhite/50 to-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
-            {/* Boarding & Installation */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="flex flex-col h-full"
-            >
-              <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="h-64 overflow-hidden relative">
-                  <img 
-                    src="/images/services/drywall-installation.jpg" 
-                    alt="Drywall installation" 
-                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" 
-                  />
-                  <div className="absolute top-0 left-0 bg-accent-forest text-white py-1 px-3 text-sm font-medium">
-                    Installation
+          {isLoading && (
+             <div className="text-center py-10">
+                <FaSpinner className="animate-spin h-12 w-12 text-accent-forest mx-auto" />
+                <p className="mt-4 text-gray-600">Loading Services...</p>
+             </div>
+          )}
+          {error && (
+             <div className="text-center py-10 bg-red-50 p-4 rounded-md">
+                <p className="text-red-700 font-semibold">Error Loading Services</p>
+                <p className="text-red-600 mt-2">{error}</p>
+             </div>
+          )}
+          {!isLoading && !error && (
+            <div className="flex flex-wrap gap-10 mb-16 justify-center">
+              {services.map((service, index) => (
+                <motion.div 
+                  key={service.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="flex flex-col h-full flex-1 min-w-[280px] sm:min-w-[300px] md:min-w-[45%] max-w-md md:max-w-[48%]"
+                >
+                  <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
+                    <div className="h-64 overflow-hidden relative">
+                      <img 
+                        src={service.image_url || service.image || '/images/placeholder.png'}
+                        alt={service.name} 
+                        className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" 
+                      />
+                      {service.category && (
+                          <div className="absolute top-0 left-0 bg-accent-forest text-white py-1 px-3 text-sm font-medium rounded-br-lg">
+                              {service.category}
+                          </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-8 flex-grow">
+                      <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
+                        <GetIconComponent iconName={service.icon} />
+                      </div>
+                      <h3 className="text-2xl font-semibold font-heading mb-4 text-accent-navy">{service.name}</h3>
+                      <p className="text-gray-700 mb-4 font-body">
+                        {service.description}
+                      </p>
+                      {service.features && service.features.length > 0 && (
+                        <ul className="list-disc pl-5 text-gray-700 space-y-2 font-body">
+                          {service.features.map((feature, fIndex) => (
+                            <li key={fIndex}>{feature}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="p-8 flex-grow">
-                  <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-semibold font-heading mb-4 text-accent-navy">Boarding & Installation</h3>
-                  <p className="text-gray-700 mb-4 font-body">
-                    From the moment we arrive, our team ensures a solid foundation with precision boarding and installation services. We use only the highest quality materials to guarantee durability and an even surface ready for finishing.
-                  </p>
-                  <ul className="list-disc pl-5 text-gray-700 space-y-2 font-body">
-                    <li>Precise measurements and cutting</li>
-                    <li>Sturdy, gap-free installation</li>
-                    <li>Premium materials for durability</li>
-                    <li>Proper framing preparation</li>
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Taping & Mudding */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex flex-col h-full"
-            >
-              <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="h-64 overflow-hidden relative">
-                  <img 
-                    src="/images/services/drywall-taping.jpg" 
-                    alt="Drywall taping tools" 
-                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" 
-                  />
-                  <div className="absolute top-0 left-0 bg-accent-forest text-white py-1 px-3 text-sm font-medium">
-                    Finishing
-                  </div>
-                </div>
-                
-                <div className="p-8 flex-grow">
-                  <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0 0L9.121 9.121" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-semibold font-heading mb-4 text-accent-navy">Taping & Mudding</h3>
-                  <p className="text-gray-700 mb-4 font-body">
-                    Our taping and mudding services are executed with surgical precision. We apply premium joint compounds and tape to create seamless transitions that prepare your walls for that perfect final touch.
-                  </p>
-                  <ul className="list-disc pl-5 text-gray-700 space-y-2 font-body">
-                    <li>Expert seam concealment</li>
-                    <li>Precise corner treatments</li>
-                    <li>Premium compounds for durability</li>
-                    <li>Multiple coats for flawless finish</li>
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Sanding & Finishing */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="flex flex-col h-full"
-            >
-              <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="h-64 overflow-hidden relative">
-                  <img 
-                    src="/images/services/texture-application.jpg" 
-                    alt="Textured wall detail" 
-                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" 
-                  />
-                  <div className="absolute top-0 left-0 bg-accent-forest text-white py-1 px-3 text-sm font-medium">
-                    Perfection
-                  </div>
-                </div>
-                
-                <div className="p-8 flex-grow">
-                  <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-semibold font-heading mb-4 text-accent-navy">Sanding & Finishing</h3>
-                  <p className="text-gray-700 mb-4 font-body">
-                    Finishing is where our true craftsmanship shines. With expert sanding and polish techniques, we transform rough surfaces into smooth, immaculate canvases that enhance any space.
-                  </p>
-                  <ul className="list-disc pl-5 text-gray-700 space-y-2 font-body">
-                    <li>Dust-controlled sanding processes</li>
-                    <li>Meticulous surface preparation</li>
-                    <li>Levels 1-5 finishing options</li>
-                    <li>Ready-for-paint surfaces</li>
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Repairs & Custom Textures */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="flex flex-col h-full"
-            >
-              <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                <div className="h-64 overflow-hidden relative">
-                  <img 
-                    src="/images/services/tools.jpg" 
-                    alt="Professional construction tools" 
-                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" 
-                  />
-                  <div className="absolute top-0 left-0 bg-accent-forest text-white py-1 px-3 text-sm font-medium">
-                    Custom Work
-                  </div>
-                </div>
-                
-                <div className="p-8 flex-grow">
-                  <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-semibold font-heading mb-4 text-accent-navy">Repairs & Custom Textures</h3>
-                  <p className="text-gray-700 mb-4 font-body">
-                    Whether it's a small repair or a completely custom finish, we offer tailored solutions. Choose from a variety of textures—from knockdown to orange peel—to match your aesthetic and practical needs.
-                  </p>
-                  <ul className="list-disc pl-5 text-gray-700 space-y-2 font-body">
-                    <li>Hole and crack repairs</li>
-                    <li>Water damage restoration</li>
-                    <li>Custom texture matching</li>
-                    <li>Decorative texture options</li>
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+                </motion.div>
+               ))}
+            </div>
+           )}
         </div>
       </section>
 
@@ -205,13 +158,13 @@ const ServicesPage: React.FC = () => {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-8 max-w-4xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="text-center"
+              className="text-center flex-1 min-w-[240px] max-w-[280px]"
             >
               <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-100">
                 <span className="text-accent-navy text-2xl font-bold">1</span>
@@ -225,7 +178,7 @@ const ServicesPage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-center"
+              className="text-center flex-1 min-w-[240px] max-w-[280px]"
             >
               <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-100">
                 <span className="text-accent-navy text-2xl font-bold">2</span>
@@ -239,7 +192,7 @@ const ServicesPage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="text-center"
+              className="text-center flex-1 min-w-[240px] max-w-[280px]"
             >
               <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-100">
                 <span className="text-accent-navy text-2xl font-bold">3</span>
@@ -253,7 +206,7 @@ const ServicesPage: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.6 }}
-              className="text-center"
+              className="text-center flex-1 min-w-[240px] max-w-[280px]"
             >
               <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-100">
                 <span className="text-accent-navy text-2xl font-bold">4</span>
@@ -362,7 +315,7 @@ const ServicesPage: React.FC = () => {
         subtitle="Contact us today for a free consultation and estimate on your drywall needs."
         primaryButtonText="Get a Free Quote"
         secondaryButtonText="See Our Work"
-        image="/images/services/drywall-installation.jpg"
+        image="/images/updated/services/sage-living-room.jpg"
       />
 
       {/* Service Areas */}

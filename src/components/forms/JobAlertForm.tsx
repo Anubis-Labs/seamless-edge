@@ -71,9 +71,9 @@ const JobAlertForm: React.FC<JobAlertFormProps> = ({ className = '' }) => {
               <p className="block text-sm font-medium text-gray-700 mb-2">
                 Interested Job Types
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-wrap gap-3">
                 {['Full-time', 'Part-time', 'Contract', 'Remote'].map(type => (
-                  <div key={type} className="flex items-center">
+                  <div key={type} className="flex items-center min-w-[120px]">
                     <input
                       type="checkbox"
                       id={`type-${type}`}

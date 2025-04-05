@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import BookingCalendar from './BookingCalendar';
+import { FaChevronDown, FaChevronUp, FaCalendarAlt } from 'react-icons/fa';
 
 interface FormData {
   name: string;
@@ -57,6 +58,26 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isBookingExpanded, setIsBookingExpanded] = useState(false);
+  
+  // Check screen size for mobile breakpoint
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Listen for resize events
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
   
   // Motion variants for fade in animations
   const fadeIn = {
@@ -231,28 +252,52 @@ const ContactForm: React.FC<ContactFormProps> = ({
               </div>
             )}
             
-            {/* Booking Calendar (conditional) */}
+            {/* Booking Calendar (conditional and collapsible on mobile) */}
             {includeBookingCalendar && (
               <div className="mb-8">
-                <h3 className="text-lg font-medium text-accent-navy mb-4">Select Preferred Appointment (Optional)</h3>
-                <BookingCalendar 
-                  isEmbedded={true}
-                  onDateTimeSelected={handleAppointmentSelected}
-                  selectedDate={formData.appointmentDate}
-                  selectedTime={formData.appointmentTime}
-                />
-                {formData.appointmentDate && formData.appointmentTime && (
-                  <div className="mt-4 p-3 bg-accent-forest/10 border border-accent-forest/20 rounded-md text-accent-navy text-sm">
-                    <p className="font-medium">Selected Appointment:</p>
-                    <p>{formData.appointmentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at {formData.appointmentTime}</p>
+                <div 
+                  className={`flex justify-between items-center ${isMobile ? 'cursor-pointer p-4 bg-accent-navy/5 rounded-lg' : ''}`}
+                  onClick={() => isMobile && setIsBookingExpanded(!isBookingExpanded)}
+                >
+                  <div className="flex items-center">
+                    <FaCalendarAlt className={`${isMobile ? 'text-accent-navy mr-2' : 'hidden'}`} />
+                    <h3 className="text-lg font-medium text-accent-navy">Schedule a Consultation (Optional)</h3>
+                  </div>
+                  {isMobile && (
+                    <div>
+                      {isBookingExpanded ? (
+                        <FaChevronUp className="text-accent-navy" />
+                      ) : (
+                        <FaChevronDown className="text-accent-navy" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Only show calendar if not on mobile or if expanded on mobile */}
+                {(!isMobile || isBookingExpanded) && (
+                  <div className={`${isMobile ? 'mt-4' : ''}`}>
+                    <BookingCalendar 
+                      isEmbedded={true}
+                      onDateTimeSelected={handleAppointmentSelected}
+                      selectedDate={formData.appointmentDate}
+                      selectedTime={formData.appointmentTime}
+                    />
+                    {formData.appointmentDate && formData.appointmentTime && (
+                      <div className="mt-4 p-3 bg-accent-forest/10 border border-accent-forest/20 rounded-md text-accent-navy text-sm">
+                        <p className="font-medium">Selected Appointment:</p>
+                        <p>{formData.appointmentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at {formData.appointmentTime}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Replace grid layout with flex layout for form fields */}
+            <div className="flex flex-wrap gap-6 mb-6">
               {/* Name */}
-              <div>
+              <div className="w-full md:w-[calc(50%-12px)]">
                 <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-700">
                   Name <span className="text-red-500">*</span>
                 </label>
@@ -276,7 +321,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
               </div>
               
               {/* Email */}
-              <div>
+              <div className="w-full md:w-[calc(50%-12px)]">
                 <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700">
                   Email <span className="text-red-500">*</span>
                 </label>
@@ -300,7 +345,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
               </div>
               
               {/* Phone */}
-              <div>
+              <div className="w-full md:w-[calc(50%-12px)]">
                 <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-700">
                   Phone
                 </label>
@@ -324,7 +369,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
               </div>
               
               {/* Service Type */}
-              <div>
+              <div className="w-full md:w-[calc(50%-12px)]">
                 <label htmlFor="serviceType" className="block mb-2 text-sm font-medium text-gray-700">
                   Service Needed <span className="text-red-500">*</span>
                 </label>
@@ -378,7 +423,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             
             {/* Address (conditional) */}
             {showAddress && (
-              <div className="mb-6">
+              <div className="mb-6 w-full">
                 <label htmlFor="address" className="block mb-2 text-sm font-medium text-gray-700">
                   Project Address
                 </label>
@@ -395,7 +440,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             )}
             
             {/* Message */}
-            <div className="mb-6">
+            <div className="mb-6 w-full">
               <label htmlFor="message" className="block mb-2 text-sm font-medium text-gray-700">
                 Project Details <span className="text-red-500">*</span>
               </label>

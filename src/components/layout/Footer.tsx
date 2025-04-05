@@ -10,13 +10,28 @@ import {
   FaMapMarkerAlt,
   FaPhone,
   FaEnvelope,
-  FaChevronRight 
+  FaChevronRight, 
+  FaSpinner
 } from 'react-icons/fa';
+import supabaseService from '../../services/supabaseService';
+
+// Type interfaces (can be imported from a shared types file if available)
+interface ContactSettings { contactEmail: string; contactPhone: string; address: string; }
+interface SocialMediaSettings { facebook: string; twitter: string; instagram: string; linkedin: string; pinterest?: string; youtube: string; }
+
+// Default/empty state for settings
+const defaultContactSettings: ContactSettings = { contactEmail: '', contactPhone: '', address: '' };
+const defaultSocialSettings: SocialMediaSettings = { facebook: '', twitter: '', instagram: '', linkedin: '', youtube: '' };
 
 const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [seed, setSeed] = useState(Math.random());
+  // State for fetched settings
+  const [contactSettings, setContactSettings] = useState<ContactSettings>(defaultContactSettings);
+  const [socialSettings, setSocialSettings] = useState<SocialMediaSettings>(defaultSocialSettings);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   // Regenerate animations periodically
   useEffect(() => {
@@ -25,6 +40,31 @@ const Footer: React.FC = () => {
     }, 30000); // Change seed every 30 seconds
     
     return () => clearInterval(interval);
+  }, []);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchFooterSettings = async () => {
+      setIsLoadingSettings(true);
+      setSettingsError(null);
+      try {
+        const [contactData, socialData] = await Promise.all([
+          supabaseService.settings.getSectionSettings('site_contact'),
+          supabaseService.settings.getSectionSettings('site_social')
+        ]);
+        // Ensure fetched data conforms to expected types, merging with defaults
+        setContactSettings({ ...defaultContactSettings, ...(contactData as ContactSettings) });
+        setSocialSettings({ ...defaultSocialSettings, ...(socialData as SocialMediaSettings) });
+      } catch (error: any) {
+        console.error("Error fetching footer settings:", error);
+        setSettingsError("Could not load contact/social info.");
+        // Keep default settings on error
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchFooterSettings();
   }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -45,13 +85,14 @@ const Footer: React.FC = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
   };
 
+  // Use fetched social settings for links
   const socialLinks = [
-    { icon: <FaFacebookF />, url: 'https://facebook.com', name: 'Facebook' },
-    { icon: <FaInstagram />, url: 'https://instagram.com', name: 'Instagram' },
-    { icon: <FaLinkedinIn />, url: 'https://linkedin.com', name: 'LinkedIn' },
-    { icon: <FaTwitter />, url: 'https://twitter.com', name: 'Twitter' },
-    { icon: <FaYoutube />, url: 'https://youtube.com', name: 'YouTube' }
-  ];
+    { icon: <FaFacebookF />, url: socialSettings.facebook, name: 'Facebook' },
+    { icon: <FaInstagram />, url: socialSettings.instagram, name: 'Instagram' },
+    { icon: <FaLinkedinIn />, url: socialSettings.linkedin, name: 'LinkedIn' },
+    { icon: <FaTwitter />, url: socialSettings.twitter, name: 'Twitter' },
+    { icon: <FaYoutube />, url: socialSettings.youtube, name: 'YouTube' }
+  ].filter(link => link.url); // Filter out links without a URL
 
   // Generate a series of horizontally stacked lines
   const generateHorizontalLines = (count = 30) => {
@@ -192,10 +233,18 @@ const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Loading/Error state for settings */}
+        {isLoadingSettings && (
+           <div className="text-center text-white/50 py-4"><FaSpinner className="animate-spin inline mr-2" /> Loading footer info...</div>
+        )}
+        {settingsError && (
+          <div className="text-center text-red-400 py-4">Error: {settingsError}</div>
+        )}
+
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12">
+        <div className="grid grid-cols-1 gap-8 sm:gap-10 sm:grid-cols-2 lg:grid-cols-4 pb-8 sm:pb-12">
           {/* Company Info */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <motion.div 
               initial="hidden"
               whileInView="visible"
@@ -208,8 +257,8 @@ const Footer: React.FC = () => {
                 Calgary's premier drywall specialists. Delivering flawless finishes and precision in every detail across Alberta.
               </p>
               
-              {/* Social Media Icons */}
-              <div className="flex flex-wrap gap-3 mt-6">
+              {/* Social Media Icons (using fetched data) */}
+              <div className="flex flex-wrap gap-3 mt-4">
                 {socialLinks.map((social, index) => (
                   <motion.a
                     key={social.name}
@@ -241,29 +290,29 @@ const Footer: React.FC = () => {
             className="space-y-4"
           >
             <h3 className="text-xl font-heading font-semibold">Our Services</h3>
-            <ul className="space-y-3 font-body">
+            <ul className="space-y-2 sm:space-y-3 font-body">
               <li>
                 <Link to="/services#boarding" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Boarding & Installation
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Boarding & Installation</span>
                 </Link>
               </li>
               <li>
                 <Link to="/services#taping" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Taping & Mudding
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Taping & Mudding</span>
                 </Link>
               </li>
               <li>
                 <Link to="/services#sanding" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Sanding & Finishing
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Sanding & Finishing</span>
                 </Link>
               </li>
               <li>
                 <Link to="/services#repairs" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Repairs & Custom Textures
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Repairs & Custom Textures</span>
                 </Link>
               </li>
             </ul>
@@ -278,35 +327,35 @@ const Footer: React.FC = () => {
             className="space-y-4"
           >
             <h3 className="text-xl font-heading font-semibold">Quick Links</h3>
-            <ul className="space-y-3 font-body">
+            <ul className="space-y-2 sm:space-y-3 font-body">
               <li>
                 <Link to="/about" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  About Us
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>About Us</span>
                 </Link>
               </li>
               <li>
                 <Link to="/gallery" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Project Gallery
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Project Gallery</span>
                 </Link>
               </li>
               <li>
                 <Link to="/blog" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Blog & Tips
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Blog & Tips</span>
                 </Link>
               </li>
               <li>
                 <Link to="/jobs" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Careers
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Careers</span>
                 </Link>
               </li>
               <li>
                 <Link to="/contact" className="text-white/80 hover:text-white inline-flex items-center hover:translate-x-1 transition-all duration-300">
-                  <FaChevronRight className="w-3 h-3 mr-2 text-white" />
-                  Contact Us
+                  <FaChevronRight className="w-3 h-3 mr-2 text-white flex-shrink-0" />
+                  <span>Contact Us</span>
                 </Link>
               </li>
             </ul>
@@ -318,7 +367,7 @@ const Footer: React.FC = () => {
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeIn}
-            className="space-y-4"
+            className="space-y-4 sm:col-span-2 lg:col-span-1"
           >
             <h3 className="text-xl font-heading font-semibold">Stay Updated</h3>
             <p className="text-white/90 font-body">
@@ -364,44 +413,55 @@ const Footer: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Contact Information */}
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeIn}
-          className="border-t border-white/20 pt-10 pb-6 grid grid-cols-1 md:grid-cols-2 gap-6"
-        >
-          <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:space-x-8">
-            <div className="flex items-center group">
-              <div className="h-8 w-8 rounded-full bg-accent-gold/20 flex items-center justify-center mr-3 group-hover:bg-accent-gold/30 transition-colors duration-300">
-                <FaPhone className="h-3 w-3 text-accent-gold group-hover:text-white" />
+        {/* Contact Information (Use fetched data) */}
+        {!isLoadingSettings && !settingsError && (
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeIn}
+            className="border-t border-white/20 pt-6 sm:pt-10 pb-6 flex flex-col sm:flex-row sm:flex-wrap gap-4 sm:gap-6"
+          >
+            <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-6 md:space-x-8">
+              {/* Phone */}
+              {contactSettings.contactPhone && (
+                <a href={`tel:${contactSettings.contactPhone}`} className="flex items-center group">
+                  <div className="h-8 w-8 rounded-full bg-accent-gold/20 flex items-center justify-center mr-3 group-hover:bg-accent-gold/30 transition-colors duration-300 flex-shrink-0">
+                    <FaPhone className="h-3 w-3 text-accent-gold group-hover:text-white" />
+                  </div>
+                  <span className="text-white/90 hover:text-white transition-colors">{contactSettings.contactPhone}</span>
+                </a>
+              )}
+               {/* Email */}
+              {contactSettings.contactEmail && (
+                <a href={`mailto:${contactSettings.contactEmail}`} className="flex items-center group">
+                  <div className="h-8 w-8 rounded-full bg-accent-gold/20 flex items-center justify-center mr-3 group-hover:bg-accent-gold/30 transition-colors duration-300 flex-shrink-0">
+                    <FaEnvelope className="h-3 w-3 text-accent-gold group-hover:text-white" />
+                  </div>
+                  <span className="text-white/90 hover:text-white transition-colors break-all">{contactSettings.contactEmail}</span>
+                </a>
+              )}
+            </div>
+            {/* Address */}
+            {contactSettings.address && (
+              <div className="flex items-center sm:ml-auto group">
+                <div className="h-8 w-8 rounded-full bg-accent-gold/20 flex items-center justify-center mr-3 group-hover:bg-accent-gold/30 transition-colors duration-300 flex-shrink-0">
+                  <FaMapMarkerAlt className="h-3 w-3 text-accent-gold group-hover:text-white" />
+                </div>
+                <span className="text-white/90">{contactSettings.address}</span>
               </div>
-              <span className="text-white/90">(403) 555-7890</span>
-            </div>
-            <div className="flex items-center group">
-              <div className="h-8 w-8 rounded-full bg-accent-gold/20 flex items-center justify-center mr-3 group-hover:bg-accent-gold/30 transition-colors duration-300">
-                <FaEnvelope className="h-3 w-3 text-accent-gold group-hover:text-white" />
-              </div>
-              <span className="text-white/90">info@seamlessedgeco.com</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-start md:justify-end group">
-            <div className="h-8 w-8 rounded-full bg-accent-gold/20 flex items-center justify-center mr-3 group-hover:bg-accent-gold/30 transition-colors duration-300">
-              <FaMapMarkerAlt className="h-3 w-3 text-accent-gold group-hover:text-white" />
-            </div>
-            <span className="text-white/90">Calgary, Alberta, Canada</span>
-          </div>
-        </motion.div>
+            )}
+          </motion.div>
+        )}
 
         {/* Copyright */}
-        <div className="border-t border-white/10 mt-6 pt-6 text-center text-white/70 font-body">
+        <div className="border-t border-white/10 mt-4 pt-6 text-center text-white/70 font-body">
           <p>© {new Date().getFullYear()} Seamless Edge. All rights reserved.</p>
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
             <Link to="/terms" className="text-white/70 hover:text-accent-gold transition-colors duration-300">Terms of Service</Link>
-            <span className="text-white/40">•</span>
+            <span className="text-white/40 hidden sm:inline">•</span>
             <Link to="/privacy" className="text-white/70 hover:text-accent-gold transition-colors duration-300">Privacy Policy</Link>
-            <span className="text-white/40">•</span>
+            <span className="text-white/40 hidden sm:inline">•</span>
             <Link to="/sitemap" className="text-white/70 hover:text-accent-gold transition-colors duration-300">Sitemap</Link>
           </div>
         </div>

@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { format } from 'date-fns';
+import { toast } from 'react-toastify';
 import PageHero from '../components/common/PageHero';
 import BookingCalendar from '../components/common/BookingCalendar';
+import supabaseService from '../services/supabaseService';
+import { FaSpinner } from 'react-icons/fa';
 
 const BookingPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,18 +41,49 @@ const BookingPage: React.FC = () => {
   };
   
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real application, you would send the data to your backend
-    console.log('Booking details:', {
-      ...formData,
-      date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null,
-      time: selectedTime
-    });
-    
-    // Show success message
-    setFormSubmitted(true);
+    if (!selectedDate || !selectedTime) {
+        toast.error("Please select a date and time slot.");
+        return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    let startTimeISO: string | null = null;
+    if (selectedDate && selectedTime) {
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        const bookingDateTime = new Date(selectedDate);
+        bookingDateTime.setHours(hours, minutes, 0, 0); 
+        startTimeISO = bookingDateTime.toISOString();
+    }
+
+    const bookingData = {
+        client_name: formData.name,
+        client_email: formData.email,
+        client_phone: formData.phone,
+        service_type: formData.projectType,
+        notes: formData.message,
+        start_time: startTimeISO,
+        status: 'pending'
+    };
+
+    try {
+      await supabaseService.bookings.createBooking(bookingData);
+      
+      toast.success("Appointment requested successfully!");
+      setFormSubmitted(true);
+
+    } catch (error: any) {
+        console.error('Booking submission error:', error);
+        const errMsg = `Failed to submit booking: ${error.message}`;
+        toast.error(errMsg);
+        setSubmitError(errMsg);
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   return (
@@ -121,15 +157,15 @@ const BookingPage: React.FC = () => {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="flex flex-wrap gap-8">
                 {/* Left sidebar with FAQs */}
-                <div className="bg-gradient-to-b from-neutral-offwhite/50 to-white p-6 rounded-lg shadow-sm">
+                <div className="flex-1 min-w-[300px] lg:min-w-[20%] lg:max-w-[25%] bg-gradient-to-b from-neutral-offwhite/50 to-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-xl font-heading font-bold text-accent-navy mb-4">Booking FAQs</h3>
                   {/* ... content ... */}
                 </div>
                 
                 {/* Calendar Section */}
-                <div className="lg:col-span-8">
+                <div className="flex-grow-[3] min-w-[300px] lg:min-w-[50%]">
                   <div className="bg-white p-6 rounded-lg shadow-sm">
                     <BookingCalendar 
                       onSelectSlot={handleSelectSlot}
@@ -140,11 +176,17 @@ const BookingPage: React.FC = () => {
                 </div>
                 
                 {/* Form Section */}
-                <div className="lg:col-span-4">
+                <div className="flex-1 min-w-[300px] lg:min-w-[20%]">
                   <div className="bg-gradient-to-b from-neutral-offwhite/50 to-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-xl font-semibold font-heading text-accent-navy mb-4">
                       Your Information
                     </h3>
+                    
+                    {submitError && (
+                      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm" role="alert">
+                        {submitError}
+                      </div>
+                    )}
                     
                     {selectedDate && selectedTime ? (
                       <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,8 +201,9 @@ const BookingPage: React.FC = () => {
                             value={formData.name}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors"
+                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors disabled:bg-gray-100"
                             placeholder="Your name"
+                            disabled={isSubmitting}
                           />
                         </div>
                         
@@ -175,8 +218,9 @@ const BookingPage: React.FC = () => {
                             value={formData.email}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors"
+                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors disabled:bg-gray-100"
                             placeholder="your.email@example.com"
+                            disabled={isSubmitting}
                           />
                         </div>
                         
@@ -191,8 +235,9 @@ const BookingPage: React.FC = () => {
                             value={formData.phone}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors"
+                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors disabled:bg-gray-100"
                             placeholder="(123) 456-7890"
+                            disabled={isSubmitting}
                           />
                         </div>
                         
@@ -205,7 +250,8 @@ const BookingPage: React.FC = () => {
                             name="projectType"
                             value={formData.projectType}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors"
+                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors disabled:bg-gray-100"
+                            disabled={isSubmitting}
                           >
                             <option value="Residential">Residential</option>
                             <option value="Commercial">Commercial</option>
@@ -225,17 +271,20 @@ const BookingPage: React.FC = () => {
                             value={formData.message}
                             onChange={handleInputChange}
                             rows={3}
-                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors"
+                            className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-accent-forest/30 focus:border-accent-forest outline-none transition-colors disabled:bg-gray-100"
                             placeholder="Please provide any details about your project..."
+                            disabled={isSubmitting}
                           ></textarea>
                         </div>
                         
                         <div className="pt-4">
                           <button
                             type="submit"
-                            className="w-full py-3 px-4 text-center bg-accent-navy text-white rounded-md hover:bg-accent-navy/90 transition-colors duration-300"
+                            className="w-full py-3 px-4 text-center bg-accent-navy text-white rounded-md hover:bg-accent-navy/90 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            disabled={isSubmitting}
                           >
-                            Confirm Appointment
+                            {isSubmitting && <FaSpinner className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />}
+                            {isSubmitting ? 'Submitting...' : 'Confirm Appointment'}
                           </button>
                         </div>
                       </form>
@@ -257,8 +306,8 @@ const BookingPage: React.FC = () => {
               </div>
               
               {/* Additional Information */}
-              <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+              <div className="mt-16 flex flex-wrap gap-8">
+                <div className="flex-1 min-w-[280px] bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                   <div className="h-12 w-12 bg-accent-forest/10 rounded-full flex items-center justify-center text-accent-forest mb-4">
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -270,7 +319,7 @@ const BookingPage: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex-1 min-w-[280px] bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                   <div className="h-12 w-12 bg-accent-forest/10 rounded-full flex items-center justify-center text-accent-forest mb-4">
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -282,7 +331,7 @@ const BookingPage: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex-1 min-w-[280px] bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                   <div className="h-12 w-12 bg-accent-forest/10 rounded-full flex items-center justify-center text-accent-forest mb-4">
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

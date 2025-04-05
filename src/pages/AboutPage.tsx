@@ -27,13 +27,14 @@ const AboutPage: React.FC = () => {
       {/* Our Story Section */}
       <section className="w-full py-16 md:py-24 bg-gradient-to-b from-neutral-offwhite/50 to-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 lg:gap-20 items-center">
+          <div className="flex flex-col md:flex-row gap-12 md:gap-16 lg:gap-20 items-center">
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               variants={fadeIn}
+              className="flex-1"
             >
               <h2 className="text-3xl md:text-4xl font-bold font-heading mb-6 text-accent-navy">Our Story</h2>
               <div className="w-16 h-1 bg-accent-forest mb-6"></div>
@@ -54,7 +55,7 @@ const AboutPage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
               variants={fadeIn}
-              className="rounded-lg overflow-hidden shadow-xl"
+              className="rounded-lg overflow-hidden shadow-xl flex-1"
             >
               <img 
                 src="/images/services/drywall-installation.jpg" 
@@ -69,14 +70,14 @@ const AboutPage: React.FC = () => {
       {/* Craftsmanship Philosophy */}
       <section className="w-full py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 lg:gap-20 items-center">
+          <div className="flex flex-col md:flex-row gap-12 md:gap-16 lg:gap-20 items-center">
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               variants={fadeIn}
-              className="order-2 md:order-1 rounded-lg overflow-hidden shadow-xl"
+              className="order-2 md:order-1 rounded-lg overflow-hidden shadow-xl flex-1"
             >
               <img 
                 src="/images/services/texture-application.jpg" 
@@ -131,26 +132,28 @@ const AboutPage: React.FC = () => {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-16">
+          <div className="flex flex-wrap gap-8 md:gap-12 mb-16">
             <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
               variants={fadeIn}
-              className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+              className="flex-1 w-full lg:w-[calc(50%-24px)]"
             >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
-                <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-accent-forest/10">
+              <div className="flex flex-col items-center gap-4">
+                {/* Square image above the card */}
+                <div className="w-full aspect-square max-w-xs rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 border-4 border-accent-forest/10">
                   <img 
                     src="/images/services/tools.jpg" 
                     alt="Steve, Co-founder" 
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold font-heading mb-2 text-accent-navy">Steve</h3>
-                  <p className="text-accent-forest font-medium mb-4">Co-founder & Master Craftsman</p>
+                {/* Card content */}
+                <div className="bg-white w-full p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <h3 className="text-2xl font-bold font-heading mb-2 text-accent-navy text-center">Steve</h3>
+                  <p className="text-accent-forest font-medium mb-4 text-center">Co-founder & Master Craftsman</p>
                   <p className="text-gray-700 font-body">
                     With over 15 years of experience in drywall installation and finishing, 
                     Steve brings unparalleled expertise to every project. His attention to detail
@@ -166,19 +169,21 @@ const AboutPage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
               variants={fadeIn}
-              className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+              className="flex-1 w-full lg:w-[calc(50%-24px)]"
             >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
-                <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-accent-forest/10">
+              <div className="flex flex-col items-center gap-4">
+                {/* Square image above the card */}
+                <div className="w-full aspect-square max-w-xs rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 border-4 border-accent-forest/10">
                   <img 
                     src="/images/services/consultation.jpg" 
                     alt="Allie, Co-founder" 
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold font-heading mb-2 text-accent-navy">Allie</h3>
-                  <p className="text-accent-forest font-medium mb-4">Co-founder & Operations Director</p>
+                {/* Card content */}
+                <div className="bg-white w-full p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <h3 className="text-2xl font-bold font-heading mb-2 text-accent-navy text-center">Allie</h3>
+                  <p className="text-accent-forest font-medium mb-4 text-center">Co-founder & Operations Director</p>
                   <p className="text-gray-700 font-body">
                     Allie's keen eye for detail and project management expertise ensures that 
                     every job runs smoothly from start to finish. She oversees client communications,
@@ -202,9 +207,9 @@ const AboutPage: React.FC = () => {
               Our team is more than just professionals—we're artisans. Each member shares our passion for quality, 
               working together to deliver results that not only meet but exceed client expectations.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 sm:gap-8">
+            <div className="flex flex-wrap gap-6 sm:gap-8 justify-center">
               {[1, 2, 3, 4].map((num) => (
-                <div key={num} className="text-center transform hover:scale-105 transition-transform duration-300">
+                <div key={num} className="text-center transform hover:scale-105 transition-transform duration-300 flex-1 min-w-[120px] max-w-[150px]">
                   <div className="w-24 h-24 mx-auto rounded-full overflow-hidden mb-3 shadow-md border-2 border-accent-forest/10">
                     <img 
                       src={`/images/services/${num === 1 ? 'drywall-installation.jpg' : num === 2 ? 'drywall-taping.jpg' : num === 3 ? 'texture-application.jpg' : 'tools.jpg'}`}

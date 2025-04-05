@@ -11,7 +11,8 @@ import {
   FaRegPlayCircle,
   FaInfoCircle,
   FaCamera,
-  FaArrowRight
+  FaArrowRight,
+  FaSeedling
 } from 'react-icons/fa';
 
 // Types
@@ -419,7 +420,7 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
       
       {/* Interactive Timeline */}
       <div 
-        className="relative py-8 px-6 bg-gray-50 border-b border-gray-200"
+        className="relative py-6 sm:py-8 px-4 sm:px-6 bg-gray-50 border-b border-gray-200"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -451,9 +452,9 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
               <button
                 key={day}
                 onClick={() => handleDayClick(day)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 text-xs sm:text-sm ${
                   currentDay === day
-                    ? 'bg-accent-forest text-white scale-125 shadow-md'
+                    ? 'bg-accent-forest text-white scale-110 sm:scale-125 shadow-md'
                     : currentDay > day
                     ? 'bg-accent-forest/30 text-accent-navy hover:bg-accent-forest/50'
                     : 'bg-white text-gray-500 border border-gray-300 hover:border-accent-forest hover:text-accent-forest'
@@ -466,11 +467,11 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
         </div>
         
         {/* Phase markers */}
-        <div className="relative mt-2 pt-6 grid grid-cols-7 gap-1">
+        <div className="relative mt-2 pt-4 sm:pt-6 flex flex-wrap justify-between">
           {timelineSteps.map((step, index) => (
             <div 
               key={step.id}
-              className={`text-center ${index === 0 ? 'col-span-1' : index === 1 ? 'col-span-1' : 'col-span-1'}`}
+              className="text-center flex-1 min-w-[80px] px-1"
               style={{
                 opacity: activeStepId === step.id ? 1 : 0.7,
                 transform: activeStepId === step.id ? 'scale(1.05)' : 'scale(1)',
@@ -478,7 +479,7 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
               }}
             >
               <div 
-                className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center ${
+                className={`w-8 h-8 sm:w-10 sm:h-10 mx-auto rounded-full flex items-center justify-center ${
                   activeStepId === step.id
                     ? 'bg-accent-forest text-white'
                     : 'bg-gray-200 text-gray-600'
@@ -486,7 +487,7 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
               >
                 {step.icon}
               </div>
-              <p className={`text-xs mt-1 font-medium ${
+              <p className={`text-xs mt-1 font-medium truncate max-w-[70px] mx-auto ${
                 activeStepId === step.id ? 'text-accent-forest' : 'text-gray-600'
               }`}>
                 {step.name.split(' ')[0]}
@@ -505,7 +506,7 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
-            className="p-6"
+            className="p-4 sm:p-6 md:p-8"
           >
             <div className="flex items-start gap-4">
               <div className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 bg-accent-navy text-white text-2xl`}>
@@ -533,7 +534,7 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
                 <p className="text-gray-700 mt-4 mb-6">{activeStep.description}</p>
                 
                 {/* Image Gallery */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6 sm:mb-8">
                   {activeStep.images.before && (
                     <div className="overflow-hidden rounded-lg border border-gray-200 h-48 group relative">
                       <img 
@@ -584,15 +585,15 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
                 </div>
                 
                 {/* Materials and Tools */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <div className="flex flex-col gap-4 sm:flex-row mb-8">
+                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 flex-1">
                     <h4 className="text-accent-navy font-heading font-semibold mb-3 flex items-center gap-2">
-                      <FaTools className="text-accent-forest" />
+                      <FaSeedling className="text-accent-forest" />
                       <span>Materials Used</span>
                     </h4>
-                    <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <ul className="flex flex-wrap gap-2 mt-2">
                       {activeStep.materials.map((material, index) => (
-                        <li key={index} className="flex items-center gap-2 text-gray-700">
+                        <li key={index} className="flex items-center gap-2 text-gray-700 min-w-[45%]">
                           <svg className="h-1.5 w-1.5 fill-accent-forest flex-shrink-0" viewBox="0 0 6 6">
                             <circle cx="3" cy="3" r="3" />
                           </svg>
@@ -602,14 +603,14 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
                     </ul>
                   </div>
                   
-                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 flex-1">
                     <h4 className="text-accent-navy font-heading font-semibold mb-3 flex items-center gap-2">
                       <FaTools className="text-accent-forest" />
                       <span>Professional Tools</span>
                     </h4>
-                    <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <ul className="flex flex-wrap gap-2 mt-2">
                       {activeStep.tools.map((tool, index) => (
-                        <li key={index} className="flex items-center gap-2 text-gray-700">
+                        <li key={index} className="flex items-center gap-2 text-gray-700 min-w-[45%]">
                           <svg className="h-1.5 w-1.5 fill-accent-forest flex-shrink-0" viewBox="0 0 6 6">
                             <circle cx="3" cy="3" r="3" />
                           </svg>
@@ -635,27 +636,27 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
                 
                 {/* Common Challenges */}
                 <div className="mb-4">
-                  <h4 className="text-accent-navy font-heading font-semibold mb-4 flex items-center gap-2">
+                  <h4 className="text-accent-navy font-heading font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg">
                     <FaExclamationTriangle className="text-accent-forest" />
                     <span>Common Challenges & Solutions</span>
                   </h4>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-wrap gap-3 sm:gap-4">
                     {activeStep.challenges.map((challenge, index) => (
                       <div 
                         key={index}
-                        className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                        className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow flex-1 min-w-[280px]"
                       >
-                        <div className="p-4 border-b border-gray-100 bg-gray-50">
-                          <h5 className="font-medium text-accent-navy">{challenge.title}</h5>
+                        <div className="p-3 sm:p-4 border-b border-gray-100 bg-gray-50">
+                          <h5 className="font-medium text-accent-navy text-sm sm:text-base">{challenge.title}</h5>
                         </div>
-                        <div className="p-4">
-                          <p className="text-gray-600 text-sm mb-3">{challenge.description}</p>
-                          <div className="flex items-center gap-2 text-accent-forest font-medium text-sm">
+                        <div className="p-3 sm:p-4">
+                          <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3">{challenge.description}</p>
+                          <div className="flex items-center gap-2 text-accent-forest font-medium text-xs sm:text-sm">
                             <FaArrowRight className="text-xs" />
                             <span>Our Solution:</span>
                           </div>
-                          <p className="text-gray-700 text-sm mt-1">{challenge.solution}</p>
+                          <p className="text-gray-700 text-xs sm:text-sm mt-1">{challenge.solution}</p>
                         </div>
                       </div>
                     ))}
@@ -668,22 +669,22 @@ const ProjectTimelineVisualizer: React.FC<ProjectTimelineVisualizerProps> = ({ c
       </AnimatePresence>
       
       {/* Call to Action */}
-      <div className="bg-accent-navy text-white p-6">
+      <div className="bg-accent-navy text-white p-4 sm:p-6">
         <div className="max-w-3xl mx-auto text-center">
-          <h3 className="text-xl font-heading font-bold mb-3">Experience Our Craftsmanship on Your Project</h3>
-          <p className="text-white/80 mb-6">
+          <h3 className="text-lg sm:text-xl font-heading font-bold mb-2 sm:mb-3">Experience Our Craftsmanship on Your Project</h3>
+          <p className="text-white/80 mb-4 sm:mb-6 text-sm sm:text-base">
             Ready to see the Seamless Edge difference? Our expert team brings this same attention to detail and craftsmanship to every project.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <a
               href="/contact"
-              className="px-6 py-3 bg-accent-forest text-white font-medium rounded hover:bg-accent-forest/90 transition-colors"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-accent-forest text-white font-medium rounded hover:bg-accent-forest/90 transition-colors text-sm sm:text-base"
             >
               Schedule a Consultation
             </a>
             <a
               href="/gallery"
-              className="px-6 py-3 bg-white/10 text-white font-medium rounded hover:bg-white/20 transition-colors"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-white/10 text-white font-medium rounded hover:bg-white/20 transition-colors text-sm sm:text-base mt-2 sm:mt-0"
             >
               View Our Work
             </a>

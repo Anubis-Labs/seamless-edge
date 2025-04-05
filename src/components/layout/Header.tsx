@@ -1,11 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import supabaseService from '../../services/supabaseService'; // Import service
+import { FaSpinner } from 'react-icons/fa'; // Import spinner
+
+// Type interfaces
+interface GeneralSettings { companyName: string; logoUrl: string; /* other fields... */ }
+interface ContactSettings { contactPhone: string; /* other fields... */ }
+
+const defaultGeneralSettings: Partial<GeneralSettings> = { companyName: 'Seamless Edge', logoUrl: '/logo.png' };
+const defaultContactSettings: Partial<ContactSettings> = { contactPhone: '' };
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
   const [lastScrollY, setLastScrollY] = useState(0);
+  // State for fetched settings
+  const [generalSettings, setGeneralSettings] = useState<Partial<GeneralSettings>>(defaultGeneralSettings);
+  const [contactSettings, setContactSettings] = useState<Partial<ContactSettings>>(defaultContactSettings);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchHeaderSettings = async () => {
+      setIsLoadingSettings(true);
+      setSettingsError(null);
+      try {
+        const [generalData, contactData] = await Promise.allSettled([
+          supabaseService.settings.getSectionSettings('site_general'),
+          supabaseService.settings.getSectionSettings('site_contact')
+        ]);
+
+        if (generalData.status === 'fulfilled') {
+            setGeneralSettings({ ...defaultGeneralSettings, ...(generalData.value as GeneralSettings) });
+        } else {
+             console.warn('Failed to load general settings:', generalData.reason);
+        }
+        if (contactData.status === 'fulfilled') {
+            setContactSettings({ ...defaultContactSettings, ...(contactData.value as ContactSettings) });
+        } else {
+             console.warn('Failed to load contact settings:', contactData.reason);
+        }
+
+      } catch (error: any) {
+        // This catch block might not be necessary with Promise.allSettled unless the service itself throws an unexpected error
+        console.error("Error fetching header settings:", error);
+        setSettingsError("Could not load header settings.");
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchHeaderSettings();
+  }, []);
 
   // Handle scroll event to change header appearance
   useEffect(() => {
@@ -62,37 +110,62 @@ const Header: React.FC = () => {
     }
   `;
 
+  // Display loading or error state for settings
+  const renderLogoContent = () => {
+      if (isLoadingSettings) {
+          return <FaSpinner className="animate-spin h-6 w-6 text-accent-navy" />;
+      } 
+      // Use logo image if URL exists, otherwise fallback to company name text
+      if (generalSettings.logoUrl) {
+          return (
+              <img 
+                src={generalSettings.logoUrl} 
+                alt={`${generalSettings.companyName || 'Seamless Edge'} Logo`} 
+                className="h-10 transition-all duration-300" 
+                style={{ height: scrolled ? '2.5rem' : '3rem' }} // Adjust height on scroll
+              />
+          );
+      } else {
+           // Fallback text logo if no image URL
+           return (
+             <span className="relative inline-block text-accent-navy font-heading tracking-tight transition-all duration-300"
+                 style={{
+                     fontWeight: scrolled ? 500 : 600,
+                     fontSize: scrolled ? '1.5rem' : '1.75rem',
+                     letterSpacing: '-0.025em',
+                     animation: 'fadeIn 0.5s ease'
+                 }}
+             >
+                {generalSettings.companyName || 'Seamless Edge'}
+             </span>
+           );
+      }
+  };
+
   return (
     <header 
       className={`fixed w-full z-50 transition-all duration-300 ease-in-out 
-      ${scrollDirection === 'down' ? '-top-20' : 'top-0'}
+      ${scrollDirection === 'down' ? '-translate-y-full' : 'translate-y-0'} // Changed animation
       ${scrolled ? 'bg-white/95 shadow-sm backdrop-blur-sm py-3' : 'bg-white/80 py-5'}`}
     >
       <style dangerouslySetInnerHTML={{ __html: animationKeyframes }} />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
-          {/* Logo with refined typography */}
+          {/* Logo Area - Updated */} 
           <div className="flex items-center">
             <Link 
               to="/" 
-              className="text-accent-navy font-heading tracking-tight transition-all duration-300"
-              style={{ 
-                fontWeight: scrolled ? 500 : 600,
-                fontSize: scrolled ? '1.5rem' : '1.75rem',
-                letterSpacing: '-0.025em',
-                animation: 'fadeIn 0.5s ease'
-              }}
+              className="transition-opacity duration-300"
+              aria-label="Homepage Logo Link"
             >
-              <span className="relative inline-block">
-                Seamless Edge
-              </span>
+             {renderLogoContent()} 
             </Link>
           </div>
           
-          {/* Desktop Navigation with refined typography and hover effects */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-2 lg:space-x-6 items-center">
-            {['Home', 'About', 'Services', 'Gallery', 'Team', 'Blog', 'Booking', 'Jobs', 'Contact'].map((item, index) => (
+            {['Home', 'About', 'Services', 'Gallery', 'Blog', 'Booking', 'Jobs', 'Contact'].map((item, index) => (
               <Link 
                 key={index}
                 to={item.toLowerCase() === 'home' ? '/' : `/${item.toLowerCase()}`}
@@ -114,13 +187,15 @@ const Header: React.FC = () => {
             </Link>
           </nav>
           
-          {/* Mobile Menu Button with refined styling */}
+          {/* Mobile Menu Button - Updated Phone */}
           <div className="md:hidden flex items-center">
-            <a href="tel:4035557890" className="mr-6 text-accent-navy" aria-label="Call us">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-            </a>
+            {contactSettings.contactPhone && (
+                <a href={`tel:${contactSettings.contactPhone}`} className="mr-6 text-accent-navy" aria-label="Call us">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                </a>
+            )}
             <button
               onClick={toggleMobileMenu}
               className="text-accent-navy transition-colors duration-300 focus:outline-none"
@@ -140,14 +215,15 @@ const Header: React.FC = () => {
         </div>
       </div>
       
-      {/* Mobile Menu overlay */}
+      {/* Mobile Menu overlay - Updated Phone */}
       {mobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-white z-40 md:hidden pt-24"
           style={{ animation: 'slideInRight 0.3s ease-in-out' }}
         >
           <div className="px-6 py-4 space-y-0 divide-y divide-neutral-softgray/20">
-            {['Home', 'About', 'Services', 'Gallery', 'Team', 'Blog', 'Booking', 'Jobs', 'Contact', 'Payments'].map((item, index) => (
+             {/* ... mobile menu links ... */}
+            {['Home', 'About', 'Services', 'Gallery', 'Blog', 'Booking', 'Jobs', 'Contact', 'Payments'].map((item, index) => (
               <Link 
                 key={index}
                 to={item.toLowerCase() === 'home' ? '/' : `/${item.toLowerCase()}`}
@@ -172,14 +248,16 @@ const Header: React.FC = () => {
               >
                 Get a Quote
               </Link>
-              <div className="flex items-center justify-center mt-10 text-sm text-accent-navy/80">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                <a href="tel:4035557890" className="hover:text-accent-forest">
-                  (403) 555-7890
-                </a>
-              </div>
+              {contactSettings.contactPhone && (
+                <div className="flex items-center justify-center mt-10 text-sm text-accent-navy/80">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <a href={`tel:${contactSettings.contactPhone}`} className="hover:text-accent-forest">
+                        {contactSettings.contactPhone}
+                    </a>
+                </div>
+               )}
             </div>
           </div>
         </div>

@@ -18,6 +18,34 @@
 .env.production.local
 .env
 
+# sensitive files
+*.md
+paSS.MD
+*.password
+*password*
+*credentials*
+*secret*
+*.pem
+*.key
+
+# database scripts with credentials
+add-dummy-data.js
+add-blogs-directly.js
+add-job-apps-directly.js
+add-blog-posts.js
+add-clients.js
+add-clients-directly.js
+add-job-applications.js
+add-testimonials.js
+check-projects.js
+check-services.js
+fix-blog-policy.js
+fix-booking-inserts.js
+fix-clients-policy.js
+fix-testimonials-policy.js
+insert-blogs-directly.js
+update-existing-projects.js
+
 # debug logs
 npm-debug.log*
 yarn-debug.log*

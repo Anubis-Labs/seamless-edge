@@ -42,7 +42,7 @@ const ServiceAreaCTA: React.FC = () => {
   return (
     <section 
       id="service-area-section" 
-      className="w-full py-32 bg-gradient-to-b from-white to-neutral-offwhite overflow-hidden relative"
+      className="w-full py-16 sm:py-24 md:py-32 bg-gradient-to-b from-white to-neutral-offwhite overflow-hidden relative"
     >
       {/* Map background for visual appeal */}
       <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -54,16 +54,16 @@ const ServiceAreaCTA: React.FC = () => {
       
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
         {/* Magazine-style section header with editorial typography */}
-        <div className="mb-16 text-center max-w-2xl mx-auto">
+        <div className="mb-10 sm:mb-16 text-center max-w-2xl mx-auto">
           <div 
             className={`transition-all duration-700 delay-300 ${inView ? 'opacity-100' : 'opacity-0 translate-y-8'}`}
           >
             <span className="text-accent-forest text-xs font-heading tracking-[0.2em] uppercase">Serving the Province</span>
-            <h2 className="text-3xl md:text-4xl font-heading font-semibold mt-3 mb-6 text-accent-navy tracking-tight leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-4xl font-heading font-semibold mt-3 mb-4 sm:mb-6 text-accent-navy tracking-tight leading-tight">
               Our Service Area in Alberta
             </h2>
             <div className="w-16 h-px bg-accent-forest mx-auto mb-6"></div>
-            <p className="text-lg text-accent-navy/70 font-body leading-relaxed">
+            <p className="text-base sm:text-lg text-accent-navy/70 font-body leading-relaxed">
               Based in the heart of Calgary, Seamless Edge provides exceptional drywall services 
               throughout Alberta. Our expert team delivers quality workmanship to residential 
               and commercial clients across the province.
@@ -73,24 +73,24 @@ const ServiceAreaCTA: React.FC = () => {
         
         {/* Refined two-column layout with elegant cards */}
         <div 
-          className={`grid grid-cols-1 md:grid-cols-12 gap-12 transition-all duration-1000 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'}`}
+          className={`flex flex-wrap gap-4 sm:gap-6 md:gap-12 transition-all duration-1000 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'}`}
           style={{ transitionDelay: '0.3s' }}
         >
           {/* Service regions card */}
-          <div className="md:col-span-7">
-            <div className="bg-white p-10 shadow-sm border border-neutral-softgray/10 relative overflow-hidden group">
+          <div className="flex-1 min-w-[280px] md:min-w-[60%] mb-6 md:mb-0">
+            <div className="bg-white p-5 sm:p-6 md:p-10 shadow-sm border border-neutral-softgray/10 relative overflow-hidden group">
               {/* Decorative accent */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-accent-forest/5 -translate-y-1/2 translate-x-1/2 rounded-full transition-all duration-700 group-hover:bg-accent-forest/10"></div>
               
-              <h3 className="text-2xl font-heading font-semibold text-accent-navy mb-8 relative">
+              <h3 className="text-xl sm:text-2xl font-heading font-semibold text-accent-navy mb-5 sm:mb-8 relative">
                 Areas We Proudly Serve
                 <span className="block w-12 h-px bg-accent-forest mt-3"></span>
               </h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-8 gap-x-12">
+              <div className="flex flex-wrap gap-y-6 sm:gap-y-8 gap-x-8 sm:gap-x-12">
                 {regions.map((region, index) => (
-                  <div key={index} className="relative">
-                    <h4 className="font-heading font-semibold text-lg text-accent-navy mb-4 flex items-center">
+                  <div key={index} className="relative flex-1 min-w-[240px]">
+                    <h4 className="font-heading font-semibold text-base sm:text-lg text-accent-navy mb-3 sm:mb-4 flex items-center">
                       <span className="w-2 h-2 bg-accent-forest mr-2"></span>
                       {region.name}
                     </h4>
@@ -108,7 +108,7 @@ const ServiceAreaCTA: React.FC = () => {
                 ))}
               </div>
               
-              <div className="mt-10 p-6 bg-neutral-offwhite border-l-2 border-accent-forest text-accent-navy/70 font-body text-sm">
+              <div className="mt-8 sm:mt-10 p-4 sm:p-6 bg-neutral-offwhite border-l-2 border-accent-forest text-accent-navy/70 font-body text-sm">
                 <p>
                   <span className="font-medium text-accent-navy">Note:</span> Standard pricing applies to Calgary and surrounding areas up to Airdrie. 
                   For locations beyond Airdrie, additional travel fees may apply. Please inquire for a custom quote 
@@ -119,10 +119,10 @@ const ServiceAreaCTA: React.FC = () => {
           </div>
           
           {/* Contact and map card */}
-          <div className="md:col-span-5">
-            <div className="bg-white p-10 shadow-sm border border-neutral-softgray/10 h-full flex flex-col relative overflow-hidden group">
+          <div className="flex-1 min-w-[280px] md:min-w-[40%]">
+            <div className="bg-white p-5 sm:p-6 md:p-10 shadow-sm border border-neutral-softgray/10 h-full flex flex-col relative overflow-hidden group">
               {/* Map visualization */}
-              <div className="mb-8 aspect-w-4 aspect-h-3 overflow-hidden">
+              <div className="mb-5 sm:mb-8 aspect-w-4 aspect-h-3 overflow-hidden">
                 <div className="relative w-full h-full p-1 bg-accent-navy/5">
                   <div className="absolute inset-0 m-1 bg-cover bg-center" style={{ 
                     backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Alberta_in_Canada.svg/800px-Alberta_in_Canada.svg.png')",
@@ -142,13 +142,13 @@ const ServiceAreaCTA: React.FC = () => {
               </div>
               
               {/* Headquarters information */}
-              <div className="mb-8">
-                <h3 className="text-xl font-heading font-semibold text-accent-navy mb-4 relative">
+              <div className="mb-5 sm:mb-8">
+                <h3 className="text-lg sm:text-xl font-heading font-semibold text-accent-navy mb-3 sm:mb-4 relative">
                   Headquarters
                   <span className="block w-8 h-px bg-accent-forest mt-3"></span>
                 </h3>
                 
-                <ul className="space-y-4 text-accent-navy/80">
+                <ul className="space-y-3 sm:space-y-4 text-accent-navy/80">
                   <li className="flex items-start">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-accent-forest mr-3 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -172,13 +172,13 @@ const ServiceAreaCTA: React.FC = () => {
               </div>
               
               {/* Call to action */}
-              <div className="mt-auto pt-6 border-t border-neutral-softgray/20">
-                <p className="text-accent-navy/80 font-body mb-6">
+              <div className="mt-auto pt-5 sm:pt-6 border-t border-neutral-softgray/20">
+                <p className="text-accent-navy/80 font-body mb-4 sm:mb-6 text-sm sm:text-base">
                   Ready for your drywall project anywhere in Alberta? Get your personalized quote today!
                 </p>
                 <Link 
                   to="/quote" 
-                  className="inline-flex items-center px-6 py-3 bg-accent-forest text-white font-heading tracking-wide hover:bg-accent-navy transition-all duration-300 shadow-sm group"
+                  className="inline-flex items-center px-5 sm:px-6 py-2.5 sm:py-3 bg-accent-forest text-white font-heading tracking-wide hover:bg-accent-navy transition-all duration-300 shadow-sm group text-sm sm:text-base"
                 >
                   <span className="mr-2">Get Your Free Quote</span>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">

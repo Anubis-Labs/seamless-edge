@@ -112,7 +112,7 @@ const TextureTechShowcase: React.FC = () => {
   };
   
   return (
-    <section ref={containerRef} className="py-24 overflow-hidden relative" onMouseMove={handleMouseMove}>
+    <section ref={containerRef} className="py-16 sm:py-20 md:py-24 overflow-hidden relative" onMouseMove={handleMouseMove}>
       {/* Decorative background */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-neutral-offwhite to-white"></div>
       <div className="absolute top-0 left-0 right-0 h-px bg-neutral-softgray/30"></div>
@@ -127,17 +127,17 @@ const TextureTechShowcase: React.FC = () => {
           className="max-w-6xl mx-auto text-center mb-16"
         >
           <span className="uppercase tracking-wider text-sm font-medium text-accent-forest">Texture Expertise</span>
-          <h2 className="text-4xl md:text-5xl font-bold font-heading mt-2 mb-4 text-accent-navy">Drywall Texture Showcase</h2>
-          <p className="text-lg text-gray-700 max-w-2xl mx-auto font-body">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-heading mt-2 mb-3 sm:mb-4 text-accent-navy">Drywall Texture Showcase</h2>
+          <p className="text-base sm:text-lg text-gray-700 max-w-2xl mx-auto font-body px-4 sm:px-0">
             Experience our range of premium drywall textures and finishes. 
             Swipe through to explore options for your next project.
           </p>
         </motion.div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="flex flex-wrap gap-4 sm:gap-6 md:gap-12 items-center">
           {/* 3D texture display */}
           <motion.div 
-            className="lg:col-span-7 relative h-96 md:h-[500px] perspective"
+            className="lg:col-span-7 relative h-64 sm:h-80 md:h-[500px] perspective"
             style={{ rotateY, rotateX }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
@@ -180,14 +180,14 @@ const TextureTechShowcase: React.FC = () => {
                       borderBottom: `4px solid ${TEXTURE_OPTIONS[activeTextureIndex].color}` 
                     }}
                   >
-                    <h3 className="text-2xl font-bold mb-2 font-heading">{TEXTURE_OPTIONS[activeTextureIndex].name}</h3>
-                    <p className="text-sm text-white/90 font-body">{TEXTURE_OPTIONS[activeTextureIndex].description}</p>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-2 font-heading">{TEXTURE_OPTIONS[activeTextureIndex].name}</h3>
+                    <p className="text-xs sm:text-sm text-white/90 font-body">{TEXTURE_OPTIONS[activeTextureIndex].description}</p>
                   </div>
                 </div>
               </motion.div>
               
               {/* Interactive elements */}
-              <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 text-sm font-medium text-accent-navy">
+              <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-accent-navy">
                 Drag to rotate
               </div>
               
@@ -216,9 +216,9 @@ const TextureTechShowcase: React.FC = () => {
               animate={inView ? "visible" : "hidden"}
               variants={variants}
               transition={{ staggerChildren: 0.1, delayChildren: 0.3 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6 mt-16 md:mt-0"
             >
-              <h3 className="text-2xl font-bold font-heading text-accent-navy mb-6">Select a Texture</h3>
+              <h3 className="text-xl sm:text-2xl font-bold font-heading text-accent-navy mb-4 sm:mb-6">Select a Texture</h3>
               
               {TEXTURE_OPTIONS.map((texture, index) => (
                 <motion.div
@@ -249,11 +249,11 @@ const TextureTechShowcase: React.FC = () => {
                 </motion.div>
               ))}
               
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <h4 className="text-lg font-heading font-semibold text-accent-navy mb-3">
+              <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-200">
+                <h4 className="text-base sm:text-lg font-heading font-semibold text-accent-navy mb-2 sm:mb-3">
                   Custom Texture Solutions
                 </h4>
-                <p className="text-gray-700 mb-4">
+                <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
                   Beyond these popular options, we offer custom texture applications tailored 
                   to your design vision. Contact us to discuss creating a unique look for your space.
                 </p>

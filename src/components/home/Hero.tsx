@@ -1,7 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react';
 import { Link } from 'react-router-dom';
 import QuoteCalculator from '../quote/QuoteCalculator';
 import { motion } from 'framer-motion';
+
+// Error boundary to catch rendering errors in child components
+class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Error in component:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div className="p-4 bg-red-100 text-red-800">We're experiencing some technical difficulties. Please try again later.</div>;
+    }
+
+    return this.props.children;
+  }
+}
 
 // High-quality, magazine-style images
 const images = [
@@ -167,6 +191,14 @@ const Hero: React.FC = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
       <div className="absolute inset-0 bg-gradient-to-r from-accent-navy/60 to-transparent" />
       
+      {/* New radial gradient overlay for better text visibility */}
+      <div className="absolute inset-0 bg-radial-dark pointer-events-none" style={{
+        background: 'radial-gradient(circle at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)'
+      }} />
+      
+      {/* Mobile-only black overlay with 50% opacity */}
+      <div className="absolute inset-0 bg-black/50 md:hidden" />
+      
       {/* Main hero content */}
       {!showQuoteCalculator && (
         <div className="absolute inset-0 flex items-center justify-center px-4">
@@ -197,15 +229,15 @@ const Hero: React.FC = () => {
             
             {/* Sophisticated call-to-action buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8">
-              <button
-                onClick={toggleQuoteCalculator}
+              <Link
+                to="/quote"
                 className="animated-border-button text-white font-heading font-medium tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl flex items-center"
               >
                 <span className="mr-2">Realtime Instant Quote</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
                 </svg>
-              </button>
+              </Link>
               
               <Link
                 to="/gallery"
@@ -248,26 +280,22 @@ const Hero: React.FC = () => {
               <div className="flex justify-between items-center mb-8">
                 <div>
                   <span className="text-accent-forest text-xs font-heading tracking-[0.2em] uppercase">Instant Estimator</span>
-                  <h2 className="text-2xl md:text-3xl font-heading font-semibold text-accent-navy mt-1">
-                    Get Your Quote
-                  </h2>
-                  <div className="w-16 h-px bg-accent-forest mt-3"></div>
+                  <h2 className="text-3xl font-heading font-semibold text-accent-navy">Get Your Personalized Quote</h2>
                 </div>
                 <button 
                   onClick={toggleQuoteCalculator}
-                  className="text-accent-navy/70 hover:text-accent-forest transition-colors w-10 h-10 flex items-center justify-center border border-gray-200 hover:border-accent-forest"
-                  aria-label="Close quote calculator"
+                  className="text-accent-navy/60 hover:text-accent-navy p-2 transition-colors duration-300"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
               
-              {/* Content - fixed size to avoid scrolling */}
-              <div className="flex-1 overflow-hidden">
+              {/* Quote Calculator */}
+              <ErrorBoundary>
                 <QuoteCalculator />
-              </div>
+              </ErrorBoundary>
             </div>
           </div>
         </div>

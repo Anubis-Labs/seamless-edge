@@ -90,7 +90,7 @@ const WhyChooseUs: React.FC = () => {
   return (
     <section 
       id="why-choose-section" 
-      className="w-full py-24 md:py-32 bg-cover bg-center bg-fixed relative overflow-hidden"
+      className="w-full py-16 sm:py-20 md:py-24 lg:py-32 bg-cover bg-center bg-fixed relative overflow-hidden"
       style={{ 
         backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1631679706909-1844bbd07221?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80')",
       }}
@@ -105,27 +105,27 @@ const WhyChooseUs: React.FC = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
         {/* Modern section header with animated elements */}
         <motion.div 
-          className="mb-16 text-center max-w-2xl mx-auto"
+          className="mb-10 sm:mb-16 text-center max-w-2xl mx-auto"
           initial="hidden"
           animate={controls}
           variants={titleVariants}
         >
           <span className="inline-block py-1 px-3 rounded-full bg-accent-sage/20 text-accent-gold text-xs font-heading tracking-[0.2em] uppercase mb-4">Excellence Defined</span>
-          <h2 className="text-4xl md:text-5xl font-heading font-bold mt-2 mb-6 text-white tracking-tight leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold mt-2 mb-4 sm:mb-6 text-white tracking-tight leading-tight">
             Why <span className="text-accent-gold">Seamless Edge</span>?
           </h2>
           <div className="w-20 h-1 bg-accent-gold mx-auto mb-6 relative">
             <div className="absolute -top-1 left-0 w-3 h-3 rounded-full bg-accent-gold"></div>
             <div className="absolute -top-1 right-0 w-3 h-3 rounded-full bg-accent-gold"></div>
           </div>
-          <p className="text-xl text-white/90 font-body leading-relaxed">
+          <p className="text-base sm:text-lg text-white/90 font-body leading-relaxed">
             When you choose Seamless Edge, you're choosing a partnership built on integrity, expertise, and an unwavering commitment to exceptional results.
           </p>
         </motion.div>
         
-        {/* Modern grid layout with animated cards */}
+        {/* Modern flex layout with animated cards */}
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10"
+          className="flex flex-wrap gap-6 sm:gap-8 lg:gap-10"
           variants={containerVariants}
           initial="hidden"
           animate={controls}
@@ -134,9 +134,9 @@ const WhyChooseUs: React.FC = () => {
             <motion.div 
               key={index}
               variants={itemVariants}
-              className="group"
+              className="group flex-1 min-w-[280px] md:min-w-[45%]"
             >
-              <div className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-8 hover:shadow-lg transition-all duration-500 h-full">
+              <div className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 sm:p-8 hover:shadow-lg transition-all duration-500 h-full">
                 {/* Animated highlight on hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-accent-gold/0 via-accent-gold/0 to-accent-gold/0 opacity-0 group-hover:opacity-20 transition-opacity duration-700"></div>
                 
@@ -152,13 +152,13 @@ const WhyChooseUs: React.FC = () => {
                 </div>
                 
                 {/* Content with dynamic underline */}
-                <h3 className="text-2xl font-heading font-bold mb-4 text-white group-hover:text-accent-gold transition-colors duration-300">
+                <h3 className="text-xl sm:text-2xl font-heading font-bold mb-3 sm:mb-4 text-white group-hover:text-accent-gold transition-colors duration-300">
                   {reason.title}
                 </h3>
                 
                 <div className="w-12 h-0.5 bg-accent-gold mb-4 group-hover:w-20 transition-all duration-500"></div>
                 
-                <p className="text-white/80 font-body text-lg leading-relaxed">
+                <p className="text-white/80 font-body text-sm sm:text-lg leading-relaxed">
                   {reason.description}
                 </p>
               </div>
@@ -168,7 +168,7 @@ const WhyChooseUs: React.FC = () => {
         
         {/* Bottom CTA */}
         <motion.div 
-          className="mt-16 text-center"
+          className="mt-10 sm:mt-16 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={controls}
           variants={{
@@ -182,7 +182,7 @@ const WhyChooseUs: React.FC = () => {
         >
           <a 
             href="/contact" 
-            className="inline-block px-8 py-4 bg-accent-gold hover:bg-accent-gold/90 text-accent-sage font-medium rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-accent-gold/20"
+            className="inline-block px-6 sm:px-8 py-3 sm:py-4 bg-accent-gold hover:bg-accent-gold/90 text-accent-sage font-medium rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-accent-gold/20 text-sm sm:text-base"
           >
             Experience the Difference
           </a>

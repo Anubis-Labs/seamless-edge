@@ -1,281 +1,261 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import PageHero from '../components/common/PageHero';
+import supabaseService from '../services/supabaseService';
+import { FaSpinner, FaCalendarAlt, FaTags, FaClock } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
-// Sample blog post data - in a real app, this would come from a CMS or backend
-const blogPosts = [
-  {
-    id: 1,
-    title: 'Drywall Maintenance Tips for Lasting Beauty',
-    summary: 'Learn practical ways to keep your drywall looking flawless year-round with these essential maintenance tips.',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque...',
-    category: 'Maintenance',
-    author: 'Steve Johnson',
-    publishDate: '2023-10-15',
-    readTime: '5 min read',
-    image: '/images/services/drywall-installation.jpg',
-    featured: true
-  },
-  {
-    id: 2,
-    title: 'Common Drywall Repair Issues & How We Fix Them',
-    summary: 'Discover the most frequent drywall problems homeowners face and how our professional techniques can restore your walls.',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque...',
-    category: 'Repairs',
-    author: 'Allie Smith',
-    publishDate: '2023-09-28',
-    readTime: '7 min read',
-    image: '/images/services/tools.jpg',
-    featured: true
-  },
-  {
-    id: 3,
-    title: 'Choosing the Right Finish: Level 5 vs. Knockdown vs. Custom',
-    summary: 'Not sure which drywall finish is right for your project? We break down the differences to help you decide.',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque...',
-    category: 'Techniques',
-    author: 'Steve Johnson',
-    publishDate: '2023-08-19',
-    readTime: '6 min read',
-    image: '/images/services/texture-application.jpg',
-    featured: false
-  },
-  {
-    id: 4,
-    title: 'Project Spotlight: Modern Basement Transformation',
-    summary: 'See how we transformed a basic unfinished basement into a stylish living space with premium drywall techniques.',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque...',
-    category: 'Case Studies',
-    author: 'Allie Smith',
-    publishDate: '2023-07-25',
-    readTime: '8 min read',
-    image: '/images/services/drywall-taping.jpg',
-    featured: false
-  },
-  {
-    id: 5,
-    title: 'Eco-Friendly Drywall Options for Sustainable Homes',
-    summary: 'Explore environmentally-conscious drywall materials and techniques for those looking to build or renovate with sustainability in mind.',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque...',
-    category: 'Materials',
-    author: 'Steve Johnson',
-    publishDate: '2023-06-12',
-    readTime: '6 min read',
-    image: '/images/services/consultation.jpg',
-    featured: false
-  },
-  {
-    id: 6,
-    title: 'How to Prepare Your Home for a Drywall Project',
-    summary: 'Follow our step-by-step guide to ensure your home is properly prepared before our team arrives for your drywall project.',
-    content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque...',
-    category: 'Tips',
-    author: 'Allie Smith',
-    publishDate: '2023-05-30',
-    readTime: '5 min read',
-    image: '/images/services/drywall-installation.jpg',
-    featured: false
-  }
-];
-
-// Extract categories for filter
-const categories = ["All", ...new Set(blogPosts.map(post => post.category))];
+// Define BlogPost type based on database schema
+interface BlogPost {
+  id: number;
+  title: string;
+  summary?: string;
+  content: string;
+  category: string;
+  author_id: string | null;
+  published_at: string;
+  featured_image?: string | null;
+  status: string; // 'draft' | 'published'
+  slug: string;
+  tags: string[];
+  created_at?: string;
+  updated_at?: string;
+  profiles?: { name: string | null } | null;
+}
 
 const BlogPage: React.FC = () => {
+  const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
+  const [featuredPosts, setFeaturedPosts] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>(["All"]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Animation variants
+  // Fetch blog posts on mount
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Only fetch published posts
+        const fetchedPosts = await supabaseService.blog.getPublishedPosts();
+        setAllPosts(fetchedPosts || []);
+        
+        // Also fetch featured posts separately
+        const featuredPosts = await supabaseService.blog.getFeaturedPosts(3);
+        setFeaturedPosts(featuredPosts || []);
+
+        // Dynamically generate categories from fetched posts
+        const uniqueCategories = ["All", ...new Set(fetchedPosts.map((post: BlogPost) => post.category).filter(Boolean) as string[])];
+        setCategories(uniqueCategories);
+      } catch (err: any) {
+        console.error("Error fetching blog posts:", err);
+        setError("Failed to load blog posts. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  // Animation variants for smooth UI transitions
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
 
+  // Format date for display
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    if (!dateString) return 'Date Unknown';
+    try {
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('en-US', options);
+    } catch (e) {
+        console.error("Error formatting date:", dateString, e);
+        return 'Invalid Date';
+    }
   };
-
-  // Filter posts based on category and search term
-  const filteredPosts = blogPosts.filter(post => {
-    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         post.summary.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+  
+  // Filter posts by category and search term
+  const filteredPosts = allPosts.filter(post => {
+    // Filter by category if not "All"
+    const categoryMatch = selectedCategory === "All" || post.category === selectedCategory;
+    
+    // Filter by search term
+    const searchMatch = !searchTerm || 
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.summary || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    return categoryMatch && searchMatch;
   });
-
-  // Get featured posts
-  const featuredPosts = filteredPosts.filter(post => post.featured);
-  // Get other posts
-  const regularPosts = filteredPosts.filter(post => !post.featured);
 
   return (
     <>
       <Helmet>
-        <title>Drywall Blog | Tips & Inspiration | Seamless Edge</title>
-        <meta name="description" content="Stay up-to-date with professional drywall tips, project showcases, and industry insights on the Seamless Edge blog." />
-        <meta name="keywords" content="drywall blog, drywall tips, wall finishing techniques, drywall repair advice" />
-        <link rel="canonical" href="https://seamlessedgeco.com/blog" />
-        {/* Open Graph / Social Media */}
-        <meta property="og:title" content="Drywall Tips & Inspiration Blog | Seamless Edge" />
-        <meta property="og:description" content="Professional advice, project showcases, and industry insights from Calgary's premier drywall specialists." />
-        <meta property="og:image" content="/images/services/texture-application.jpg" />
-        <meta property="og:url" content="https://seamlessedgeco.com/blog" />
-        <meta property="og:type" content="website" />
+        <title>Blog | Seamless Edge</title>
+        <meta name="description" content="Read our latest articles on home maintenance, repairs, and more." />
       </Helmet>
-
+      
       <PageHero 
-        title="Drywall Blog & Tips" 
-        subtitle="Expert advice, project showcases, and industry knowledge for your drywall projects"
-        backgroundImage="/images/updated/services/sage-office-plants.jpg"
+        backgroundImage="/images/blog-hero.jpg"
+        title="Our Blog" 
+        subtitle="Insights, tips, and expert advice for homeowners"
       />
-
-      <section className="py-12 bg-gradient-to-b from-neutral-offwhite/50 to-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row gap-4 mb-8">
-              {/* Search box */}
-              <div className="flex-grow">
-                <input
-                  type="text"
-                  placeholder="Search articles..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                />
-              </div>
-              
-              {/* Category filter */}
-              <div className="w-full md:w-auto">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-accent-forest focus:border-accent-forest bg-white"
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category === "All" ? "All Categories" : category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-white">
+      
+      <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           {/* Featured Posts */}
           {featuredPosts.length > 0 && (
-            <div className="mb-16">
-              <h2 className="text-3xl font-bold font-heading mb-8 text-accent-navy text-center">Featured Articles</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {featuredPosts.map((post) => (
+            <div className="mb-20">
+              <h2 className="text-3xl font-bold mb-10 text-center text-accent-navy">Featured Articles</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {featuredPosts.map(post => (
                   <motion.div
                     key={post.id}
+                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
                     initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
+                    animate="visible"
                     variants={fadeIn}
-                    className="bg-white rounded-lg overflow-hidden shadow-md transition-shadow duration-300 hover:shadow-lg"
+                    transition={{ duration: 0.5, delay: 0.2 }}
                   >
-                    <div className="h-64 relative">
-                      <img 
-                        src={post.image} 
-                        alt={post.title} 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-4 left-4 bg-accent-forest text-white text-xs font-medium px-2 py-1 rounded-full">
-                        {post.category}
+                    <Link to={`/blog/${post.slug}`}>
+                      <div className="h-48 overflow-hidden">
+                        <img 
+                          src={post.featured_image || '/images/placeholder.jpg'} 
+                          alt={post.title}
+                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                        />
                       </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold font-heading mb-2 text-accent-navy">{post.title}</h3>
-                      <p className="text-gray-600 mb-4 font-body">{post.summary}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500 font-body">{formatDate(post.publishDate)} • {post.readTime}</span>
-                        <button className="text-accent-forest font-medium hover:underline">Read More</button>
+                      <div className="p-6">
+                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-forest bg-opacity-10 text-accent-forest mr-2">
+                            {post.category}
+                          </span>
+                          <span className="flex items-center">
+                            <FaCalendarAlt className="mr-1" /> {formatDate(post.published_at)}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-semibold text-accent-navy mb-2">{post.title}</h3>
+                        <p className="text-gray-600 mb-4 line-clamp-2">{post.summary}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-accent-forest font-medium">Read more</span>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   </motion.div>
                 ))}
               </div>
             </div>
           )}
           
-          {/* All Articles */}
-          <div>
-            <h2 className="text-3xl font-bold font-heading mb-8 text-accent-navy text-center">All Articles</h2>
-            {filteredPosts.length === 0 ? (
-              <div className="text-center py-16">
-                <h3 className="text-xl font-bold text-gray-700 mb-2">No articles found</h3>
-                <p className="text-gray-500">Try changing your search terms or category filter.</p>
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row justify-between items-center mb-10">
+            <div className="flex flex-wrap gap-2 mb-4 md:mb-0">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-accent-forest text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            <div className="w-full md:w-auto">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search articles..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full md:w-64 pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-accent-forest focus:border-transparent"
+                />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <FaSearch />
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {regularPosts.map((post) => (
-                  <motion.div
-                    key={post.id}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    variants={fadeIn}
-                    className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:translate-y-[-5px]"
-                  >
-                    <div className="h-48 relative">
-                      <img 
-                        src={post.image} 
-                        alt={post.title} 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-3 left-3 bg-accent-forest/80 text-white text-xs font-medium px-2 py-1 rounded-full">
-                        {post.category}
-                      </div>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="text-lg font-semibold font-heading mb-2 text-accent-navy">{post.title}</h3>
-                      <p className="text-gray-600 text-sm mb-4 font-body line-clamp-2">{post.summary}</p>
-                      <div className="flex items-center justify-between mt-auto text-sm text-gray-500 pt-3 border-t border-gray-100">
-                        <span>{formatDate(post.publishDate)}</span>
-                        <button className="text-accent-forest font-medium">Read More</button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Debugging element to verify we're on the blog page */}
-          <div className="fixed top-0 right-0 bg-accent-forest text-white p-1 text-xs m-1 z-[9999] rounded">
-            Blog Page
-          </div>
-        </div>
-      </section>
-      
-      {/* Newsletter section */}
-      <section className="py-16 bg-gradient-to-b from-neutral-offwhite/50 to-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-xl mx-auto text-center">
-            <h2 className="text-2xl font-bold font-heading mb-4 text-accent-navy">Get Expert Tips Delivered</h2>
-            <p className="text-gray-600 mb-6">Subscribe to our newsletter for the latest drywall tips and industry insights.</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input 
-                type="email" 
-                placeholder="Your email address" 
-                className="flex-grow px-4 py-2 rounded-md border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-              />
-              <button className="px-6 py-2 bg-accent-forest text-white font-medium rounded-md hover:bg-accent-forest/90 whitespace-nowrap">
-                Subscribe
-              </button>
             </div>
           </div>
+          
+          {/* Blog posts */}
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <FaSpinner className="animate-spin text-4xl text-accent-forest" />
+            </div>
+          ) : error ? (
+            <div className="bg-red-100 text-red-700 p-4 rounded-lg text-center">
+              {error}
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-16">
+              <h3 className="text-xl font-medium text-gray-600">No blog posts found matching your criteria.</h3>
+              <button 
+                onClick={() => {
+                  setSelectedCategory("All");
+                  setSearchTerm("");
+                }}
+                className="mt-4 px-6 py-2 bg-accent-forest text-white rounded-full hover:bg-accent-navy transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPosts.map(post => (
+                <motion.div
+                  key={post.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeIn}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Link to={`/blog/${post.slug}`}>
+                    <div className="h-48 overflow-hidden">
+                      <img 
+                        src={post.featured_image || '/images/placeholder.jpg'} 
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                          {post.category}
+                        </span>
+                        <span className="flex items-center">
+                          <FaCalendarAlt className="mr-1" /> {formatDate(post.published_at)}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-semibold text-accent-navy mb-2">{post.title}</h3>
+                      <p className="text-gray-600 mb-4 line-clamp-2">{post.summary}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-accent-forest font-medium">Read more</span>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </>
   );
 };
+
+const FaSearch = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
 
 export default BlogPage; 

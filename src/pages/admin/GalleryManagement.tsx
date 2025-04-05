@@ -1,152 +1,193 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaImage, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaSpinner, FaImage, FaSave, FaExchangeAlt } from 'react-icons/fa';
+import supabaseService from '../../services/supabaseService';
+import { toast } from 'react-toastify';
+import FileUpload from '../../components/common/FileUpload';
 
 interface Project {
   id: number;
   title: string;
-  description: string;
-  category: string;
-  location: string;
-  image_before: string;
-  image_after: string;
-  additional_images: string[];
-  date_completed: string;
-  featured: boolean;
-  testimonial_id?: number;
+  description?: string | null;
+  client_id?: number | null;
+  status?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  total_cost?: number | null;
+  service_type?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  before_image?: string | null;
+  after_image?: string | null;
+  comparison_images?: any[] | null;
 }
 
 const GalleryManagement: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [filterCategory, setFilterCategory] = useState('');
+  const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+  const [filterServiceType, setFilterServiceType] = useState('');
   
-  // Mock data for development
-  useEffect(() => {
-    // In real implementation, this would fetch from Supabase
-    const mockProjects: Project[] = [
-      {
-        id: 1,
-        title: 'Modern Kitchen Renovation',
-        description: 'Complete kitchen remodel with custom cabinets and high-end appliances',
-        category: 'Kitchen',
-        location: 'Seattle, WA',
-        image_before: 'https://placehold.co/600x400?text=Before',
-        image_after: 'https://placehold.co/600x400?text=After',
-        additional_images: ['https://placehold.co/600x400?text=Detail+1', 'https://placehold.co/600x400?text=Detail+2'],
-        date_completed: '2023-10-15',
-        featured: true
-      },
-      {
-        id: 2,
-        title: 'Bathroom Spa Transformation',
-        description: 'Luxury bathroom renovation with custom tiling and walk-in shower',
-        category: 'Bathroom',
-        location: 'Portland, OR',
-        image_before: 'https://placehold.co/600x400?text=Before',
-        image_after: 'https://placehold.co/600x400?text=After',
-        additional_images: ['https://placehold.co/600x400?text=Detail+1'],
-        date_completed: '2023-11-20',
-        featured: false
-      },
-      {
-        id: 3,
-        title: 'Basement Entertainment Area',
-        description: 'Converted unfinished basement into a family entertainment room',
-        category: 'Basement',
-        location: 'Bellevue, WA',
-        image_before: 'https://placehold.co/600x400?text=Before',
-        image_after: 'https://placehold.co/600x400?text=After',
-        additional_images: [],
-        date_completed: '2023-09-05',
-        featured: true
-      }
-    ];
-    
-    // Load from localStorage or use mock data if not available
-    const storedProjects = localStorage.getItem('seamlessedge_projects');
-    const projectsData = storedProjects ? JSON.parse(storedProjects) : mockProjects;
-    
-    setProjects(projectsData);
-    
-    // Extract unique categories
-    const uniqueCategories = Array.from(new Set(projectsData.map((project: Project) => project.category)));
-    setCategories(uniqueCategories as string[]);
-    
-    setLoading(false);
-    
-    // Store mock data in localStorage for persistence during development
-    if (!storedProjects) {
-      localStorage.setItem('seamlessedge_projects', JSON.stringify(mockProjects));
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await supabaseService.gallery.getProjects();
+      const formattedData = (data || []).map((p: any) => ({
+         ...p,
+         title: p.title ?? 'Untitled Project',
+         service_type: p.service_type ?? 'Unknown',
+         end_date: p.end_date,
+         before_image: p.before_image || null,
+         after_image: p.after_image || null,
+         comparison_images: p.comparison_images || []
+      }));
+      setProjects(formattedData as Project[]);
+      
+      const uniqueServiceTypes = Array.from(
+        new Set(formattedData.map((project: Project) => project.service_type))
+      ).filter(st => st);
+      setServiceTypes(uniqueServiceTypes as string[]);
+    } catch (err: any) {
+      console.error('Error fetching projects:', err);
+      toast.error(`Failed to load projects: ${err.message}`);
+      setError(`Failed to load projects: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
   
   const handleAddNew = () => {
     setSelectedProject({
-      id: Date.now(),
+      id: 0,
       title: '',
       description: '',
-      category: '',
-      location: '',
-      image_before: '',
-      image_after: '',
-      additional_images: [],
-      date_completed: new Date().toISOString().split('T')[0],
-      featured: false
+      service_type: serviceTypes[0] || '',
+      end_date: new Date().toISOString().split('T')[0],
+      status: 'pending',
+      before_image: null,
+      after_image: null,
+      comparison_images: []
     });
     setIsModalOpen(true);
+    setError(null);
   };
   
   const handleEdit = (project: Project) => {
-    setSelectedProject(project);
+    setSelectedProject({
+      ...JSON.parse(JSON.stringify(project)),
+      end_date: project.end_date ? project.end_date.split('T')[0] : null
+    });
     setIsModalOpen(true);
+    setError(null);
   };
   
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      const updatedProjects = projects.filter(project => project.id !== id);
-      setProjects(updatedProjects);
-      localStorage.setItem('seamlessedge_projects', JSON.stringify(updatedProjects));
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this project?') && !saving) {
+      setSaving(true);
+      try {
+        await supabaseService.gallery.deleteProject(id);
+        toast.success('Project deleted successfully!');
+        await fetchProjects();
+      } catch (err: any) {
+        console.error('Error deleting project:', err);
+        toast.error(`Error deleting project: ${err.message}`);
+        setError(`Failed to delete project: ${err.message}`);
+      } finally {
+        setSaving(false);
+      }
     }
   };
   
-  const handleToggleFeatured = (id: number) => {
-    const updatedProjects = projects.map(project => 
-      project.id === id ? { ...project, featured: !project.featured } : project
-    );
-    setProjects(updatedProjects);
-    localStorage.setItem('seamlessedge_projects', JSON.stringify(updatedProjects));
-  };
-  
-  const handleSaveProject = (project: Project) => {
-    let updatedProjects;
-    
-    if (projects.some(p => p.id === project.id)) {
-      // Update existing project
-      updatedProjects = projects.map(p => p.id === project.id ? project : p);
-    } else {
-      // Add new project
-      updatedProjects = [...projects, project];
+  const handleSaveProject = async (projectToSave: Project) => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+
+    if (!projectToSave.title || !projectToSave.service_type) {
+        toast.error("Please fill in Title and Service Type.");
+        setSaving(false);
+        return;
     }
-    
-    setProjects(updatedProjects);
-    localStorage.setItem('seamlessedge_projects', JSON.stringify(updatedProjects));
-    setIsModalOpen(false);
-    setSelectedProject(null);
+
+    try {
+      const { id, created_at, updated_at, ...dataToSave } = projectToSave; 
+      
+      const payload = {
+          title: dataToSave.title,
+          description: dataToSave.description,
+          service_type: dataToSave.service_type,
+          end_date: dataToSave.end_date,
+          status: dataToSave.status,
+          client_id: dataToSave.client_id,
+          start_date: dataToSave.start_date,
+          total_cost: dataToSave.total_cost,
+          before_image: dataToSave.before_image,
+          after_image: dataToSave.after_image,
+          comparison_images: dataToSave.comparison_images
+      };
+      
+      Object.keys(payload).forEach(key => payload[key as keyof typeof payload] === undefined && delete payload[key as keyof typeof payload]);
+
+      if (id === 0) {
+        await supabaseService.gallery.createProject(payload);
+        toast.success(`Project created successfully!`);
+      } else {
+        await supabaseService.gallery.updateProject(id, payload);
+        toast.success(`Project updated successfully!`);
+      }
+      
+      setIsModalOpen(false);
+      setSelectedProject(null);
+      await fetchProjects();
+    } catch (err: any) {
+      console.error('Error saving project:', err);
+      const errorMessage = `Error saving project: ${err.message}`;
+      toast.error(errorMessage);
+      setError(errorMessage);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle image uploads
+  const handleBeforeImageUpload = (imageUrl: string) => {
+    if (selectedProject) {
+      setSelectedProject({
+        ...selectedProject,
+        before_image: imageUrl
+      });
+      toast.success('Before image uploaded successfully');
+    }
+  };
+
+  const handleAfterImageUpload = (imageUrl: string) => {
+    if (selectedProject) {
+      setSelectedProject({
+        ...selectedProject,
+        after_image: imageUrl
+      });
+      toast.success('After image uploaded successfully');
+    }
   };
   
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+        (project.title && project.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesCategory = filterCategory === '' || project.category === filterCategory;
+    const matchesServiceType = filterServiceType === '' || project.service_type === filterServiceType;
     
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesServiceType;
   });
 
   return (
@@ -158,127 +199,137 @@ const GalleryManagement: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Gallery Management</h1>
         <p className="text-gray-600">Manage your project gallery and showcase your best work.</p>
+        {error && !isModalOpen && (
+           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
+             <strong className="font-bold">Error:</strong>
+             <span className="block sm:inline"> {error}</span>
+           </div>
+        )}
       </div>
       
-      {/* Filters and Actions */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-col md:flex-row gap-4 md:items-center">
           <div className="relative">
             <input
               type="text"
               placeholder="Search projects..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest disabled:opacity-50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={loading || saving}
             />
             <FaSearch className="absolute left-3 top-3 text-gray-400" />
           </div>
           
           <select
-            className="py-2 pl-3 pr-8 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest"
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
+            className="py-2 pl-3 pr-8 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest disabled:opacity-50"
+            value={filterServiceType}
+            onChange={(e) => setFilterServiceType(e.target.value)}
+            disabled={loading || saving || serviceTypes.length === 0}
           >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            <option value="">All Service Types</option>
+            {serviceTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
             ))}
           </select>
         </div>
         
         <button
           onClick={handleAddNew}
-          className="bg-accent-forest text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-accent-forest-dark transition-colors"
+          className="bg-accent-forest text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-accent-forest-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading || saving}
         >
           <FaPlus className="mr-2" /> Add New Project
         </button>
       </div>
       
-      {/* Projects List */}
       {loading ? (
-        <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-forest"></div>
+        <div className="flex justify-center py-12">
+          <FaSpinner className="animate-spin h-12 w-12 text-accent-forest" />
         </div>
       ) : filteredProjects.length === 0 ? (
         <div className="bg-white p-8 rounded-lg shadow text-center">
-          <FaImage className="text-gray-300 text-6xl mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-700">No Projects Found</h3>
           <p className="text-gray-500 mt-2">
-            {searchTerm || filterCategory ? 'No projects match your filters.' : 'Start by adding your first project.'}
+            {searchTerm || filterServiceType ? 'No projects match your filters.' : 'Start by adding your first project.'}
           </p>
-          {(searchTerm || filterCategory) && (
+          {(searchTerm || filterServiceType) && (
             <button 
-              className="mt-4 text-accent-forest hover:text-accent-forest-dark"
+              className="mt-4 text-accent-forest hover:text-accent-forest-dark disabled:opacity-50"
               onClick={() => {
                 setSearchTerm('');
-                setFilterCategory('');
+                setFilterServiceType('');
               }}
+              disabled={loading || saving}
             >
               Clear Filters
             </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-wrap gap-6">
           {filteredProjects.map(project => (
-            <div key={project.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="relative">
-                <div className="flex h-48">
-                  <div className="w-1/2 bg-gray-100">
-                    <img 
-                      src={project.image_before} 
-                      alt={`${project.title} Before`} 
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                      Before
-                    </div>
+            <div key={project.id} className="bg-white rounded-lg shadow-lg overflow-hidden flex-1 min-w-[280px] max-w-md">
+              {/* Images preview section */}
+              <div className="relative h-40 bg-gray-200">
+                {project.before_image || project.after_image ? (
+                  <div className="flex h-full">
+                    {project.before_image && (
+                      <div className="flex-1 overflow-hidden">
+                        <img 
+                          src={project.before_image} 
+                          alt={`Before: ${project.title}`} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-0 left-0 bg-black bg-opacity-50 text-white px-2 py-1 text-xs">
+                          Before
+                        </div>
+                      </div>
+                    )}
+                    {project.after_image && (
+                      <div className="flex-1 overflow-hidden">
+                        <img 
+                          src={project.after_image} 
+                          alt={`After: ${project.title}`} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-0 right-0 bg-black bg-opacity-50 text-white px-2 py-1 text-xs">
+                          After
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="w-1/2 bg-gray-100">
-                    <img 
-                      src={project.image_after} 
-                      alt={`${project.title} After`} 
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                      After
-                    </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <FaImage className="text-gray-400 text-4xl" />
                   </div>
-                </div>
-                <button 
-                  onClick={() => handleToggleFeatured(project.id)}
-                  className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-1 shadow"
-                >
-                  {project.featured ? 
-                    <FaStar className="text-yellow-500" /> : 
-                    <FaRegStar className="text-gray-400" />
-                  }
-                </button>
+                )}
               </div>
               
               <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-lg text-gray-800">{project.title}</h3>
-                  <span className="text-xs bg-accent-forest text-white px-2 py-1 rounded">
-                    {project.category}
+                  <h3 className="font-bold text-lg text-gray-800 truncate pr-2">{project.title}</h3>
+                  <span className="text-xs bg-accent-forest text-white px-2 py-1 rounded whitespace-nowrap">
+                    {project.service_type || 'N/A'}
                   </span>
                 </div>
-                <p className="text-gray-600 text-sm mb-2 line-clamp-2">{project.description}</p>
+                <p className="text-gray-600 text-sm mb-2 line-clamp-2">{project.description || 'No description.'}</p>
                 <div className="text-gray-500 text-sm mb-4">
-                  <div>{project.location}</div>
-                  <div>Completed: {new Date(project.date_completed).toLocaleDateString()}</div>
+                  <div>Completed: {project.end_date ? new Date(project.end_date).toLocaleDateString() : 'N/A'}</div>
                 </div>
                 
-                <div className="flex justify-between">
+                <div className="flex justify-between pt-2 border-t">
                   <button
                     onClick={() => handleEdit(project)}
-                    className="text-blue-600 hover:text-blue-800 flex items-center"
+                    className="text-blue-600 hover:text-blue-800 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving}
                   >
                     <FaEdit className="mr-1" /> Edit
                   </button>
                   <button
                     onClick={() => handleDelete(project.id)}
-                    className="text-red-600 hover:text-red-800 flex items-center"
+                    className="text-red-600 hover:text-red-800 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving}
                   >
                     <FaTrash className="mr-1" /> Delete
                   </button>
@@ -289,153 +340,111 @@ const GalleryManagement: React.FC = () => {
         </div>
       )}
       
-      {/* Project Edit/Add Modal - In a real implementation, this would be a separate component */}
       {isModalOpen && selectedProject && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-90vh overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6">
-                {selectedProject.id ? 'Edit Project' : 'Add New Project'}
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b">
+              <h2 className="text-2xl font-bold">
+                {selectedProject.id === 0 ? 'Add New Project' : 'Edit Project'}
               </h2>
+            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveProject(selectedProject); }} className="p-6 overflow-y-auto flex-grow">
+               {error && isModalOpen && (
+                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                   <strong className="font-bold">Error:</strong>
+                   <span className="block sm:inline"> {error}</span>
+                 </div>
+               )}
               
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                handleSaveProject(selectedProject);
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Project Title</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.title}
-                      onChange={(e) => setSelectedProject({...selectedProject, title: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Category</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.category}
-                      onChange={(e) => setSelectedProject({...selectedProject, category: e.target.value})}
-                      list="categories"
-                    />
-                    <datalist id="categories">
-                      {categories.map(cat => (
-                        <option key={cat} value={cat} />
-                      ))}
-                    </datalist>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Location</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.location}
-                      onChange={(e) => setSelectedProject({...selectedProject, location: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Completion Date</label>
-                    <input
-                      type="date"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.date_completed}
-                      onChange={(e) => setSelectedProject({...selectedProject, date_completed: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-700 font-medium mb-2">Description</label>
-                    <textarea
-                      required
-                      rows={4}
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.description}
-                      onChange={(e) => setSelectedProject({...selectedProject, description: e.target.value})}
-                    ></textarea>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Before Image URL</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.image_before}
-                      onChange={(e) => setSelectedProject({...selectedProject, image_before: e.target.value})}
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      In a production system, this would be a file upload component.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">After Image URL</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.image_after}
-                      onChange={(e) => setSelectedProject({...selectedProject, image_after: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-700 font-medium mb-2">Additional Image URLs</label>
-                    <textarea
-                      rows={3}
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedProject.additional_images.join('\n')}
-                      onChange={(e) => setSelectedProject({
-                        ...selectedProject, 
-                        additional_images: e.target.value.split('\n').filter(url => url.trim() !== '')
-                      })}
-                      placeholder="Enter one URL per line"
-                    ></textarea>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="rounded text-accent-forest focus:ring-accent-forest h-5 w-5 mr-2"
-                        checked={selectedProject.featured}
-                        onChange={(e) => setSelectedProject({...selectedProject, featured: e.target.checked})}
-                      />
-                      <span>Feature this project</span>
-                    </label>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Project Title *</label>
+                  <input type="text" required className="w-full border border-gray-300 rounded-lg p-2 disabled:bg-gray-100" value={selectedProject.title} onChange={(e) => setSelectedProject({...selectedProject, title: e.target.value})} disabled={saving}/>
                 </div>
                 
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button
-                    type="button"
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      setSelectedProject(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-accent-forest text-white rounded-lg hover:bg-accent-forest-dark"
-                  >
-                    Save Project
-                  </button>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Service Type *</label>
+                  <input type="text" required className="w-full border border-gray-300 rounded-lg p-2 disabled:bg-gray-100" value={selectedProject.service_type || ''} onChange={(e) => setSelectedProject({...selectedProject, service_type: e.target.value})} list="serviceTypesList" disabled={saving}/>
+                  <datalist id="serviceTypesList"> {serviceTypes.map(type => (<option key={type} value={type} />))} </datalist>
                 </div>
-              </form>
-            </div>
+                
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">End Date</label>
+                  <input type="date" className="w-full border border-gray-300 rounded-lg p-2 disabled:bg-gray-100" value={selectedProject.end_date || ''} onChange={(e) => setSelectedProject({...selectedProject, end_date: e.target.value})} disabled={saving}/>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-medium mb-2">Description</label>
+                  <textarea rows={4} className="w-full border border-gray-300 rounded-lg p-2 disabled:bg-gray-100" value={selectedProject.description || ''} onChange={(e) => setSelectedProject({...selectedProject, description: e.target.value})} disabled={saving}></textarea>
+                </div>
+                
+                {/* Before Image Upload */}
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Before Image</label>
+                  {selectedProject.before_image ? (
+                    <div className="mb-2 relative">
+                      <img 
+                        src={selectedProject.before_image} 
+                        alt="Before" 
+                        className="h-40 w-full object-cover rounded"
+                      />
+                      <div className="absolute top-0 left-0 bg-black bg-opacity-50 text-white px-2 py-1 text-xs">
+                        Before
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-40 bg-gray-100 rounded mb-2 border border-dashed border-gray-300">
+                      <div className="text-center">
+                        <FaImage className="mx-auto text-gray-400 text-4xl mb-2" />
+                        <span className="text-sm text-gray-500">No before image</span>
+                      </div>
+                    </div>
+                  )}
+                  <FileUpload
+                    bucketName="gallery-images"
+                    onUploadComplete={handleBeforeImageUpload}
+                    acceptedFileTypes="image/*"
+                    label="Upload Before Image"
+                  />
+                </div>
+                
+                {/* After Image Upload */}
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">After Image</label>
+                  {selectedProject.after_image ? (
+                    <div className="mb-2 relative">
+                      <img 
+                        src={selectedProject.after_image} 
+                        alt="After" 
+                        className="h-40 w-full object-cover rounded"
+                      />
+                      <div className="absolute top-0 left-0 bg-black bg-opacity-50 text-white px-2 py-1 text-xs">
+                        After
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-40 bg-gray-100 rounded mb-2 border border-dashed border-gray-300">
+                      <div className="text-center">
+                        <FaImage className="mx-auto text-gray-400 text-4xl mb-2" />
+                        <span className="text-sm text-gray-500">No after image</span>
+                      </div>
+                    </div>
+                  )}
+                  <FileUpload
+                    bucketName="gallery-images"
+                    onUploadComplete={handleAfterImageUpload}
+                    acceptedFileTypes="image/*"
+                    label="Upload After Image"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50" onClick={() => { setIsModalOpen(false); setSelectedProject(null); setError(null); }} disabled={saving}> Cancel </button>
+                <button type="submit" className="px-4 py-2 bg-accent-forest text-white rounded-lg hover:bg-accent-forest-dark flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled={saving}> {saving ? <FaSpinner className="animate-spin mr-2" /> : <FaSave className="mr-2" />} {saving ? 'Saving...' : 'Save Project'} </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -334,7 +334,6 @@ const QuoteCalculator: React.FC = () => {
   const handleNext = () => {
     if (validateStep(currentStep) && currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
@@ -342,7 +341,6 @@ const QuoteCalculator: React.FC = () => {
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
@@ -361,7 +359,6 @@ const QuoteCalculator: React.FC = () => {
     
     if (canProceed && step >= 1 && step <= totalSteps) {
       setCurrentStep(step);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 

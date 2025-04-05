@@ -1,5 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import supabaseService from '../../services/supabaseService'; // Import service
+import { FaSpinner } from 'react-icons/fa'; // Import spinner
+
+// Define Service type matching expected data
+interface Service {
+  id: number;
+  name: string;
+  description: string;
+  image?: string; // Primary image field from database
+  image_url?: string; // Alternative image field
+}
+
+// Define placeholder service type
+interface PlaceholderService {
+  id: number;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+}
 
 // SVG Icon components for a more elegant look
 const DryboardIcon = () => (
@@ -25,6 +44,16 @@ const RepairsIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0 0L9.121 9.121M7.5 7.5l2.879.757m7 7l2.828 2.828" />
   </svg>
 );
+
+// Helper to get icon based on title (simple matching)
+const getIconForService = (name: string) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('board') || lowerName.includes('install')) return <DryboardIcon />;
+    if (lowerName.includes('tap') || lowerName.includes('mud')) return <TapingIcon />;
+    if (lowerName.includes('sand') || lowerName.includes('finish')) return <FinishingIcon />;
+    if (lowerName.includes('repair') || lowerName.includes('texture')) return <RepairsIcon />;
+    return <DryboardIcon />; // Default icon
+};
 
 // Vector animation component for background
 const VectorAnimation = ({ inView, scrollPosition }: { inView: boolean; scrollPosition: number }) => {
@@ -230,8 +259,38 @@ const ServiceSnapshot: React.FC = () => {
   const [inView, setInView] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch services
+  useEffect(() => {
+    const fetchServices = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedServices = await supabaseService.services.getServices();
+        // Process data to ensure services have all required fields
+        const processedServices = (fetchedServices as Service[] || []).map(service => ({
+          ...service,
+          name: service.name || 'Service',
+          description: service.description || 'Service description',
+          image: service.image || service.image_url || '/images/placeholder.png',
+          image_url: service.image_url || service.image || '/images/placeholder.png'
+        }));
+        // Select the first 4 services or fewer if less than 4 exist
+        setServices(processedServices.slice(0, 4)); 
+      } catch (err: any) {
+        console.error("Error fetching services for snapshot:", err);
+        setError("Could not load services overview.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
   
-  // Enhanced intersection observer for finer animation control
+  // Intersection observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -254,7 +313,7 @@ const ServiceSnapshot: React.FC = () => {
     };
   }, []);
   
-  // Track scroll position for parallax effects
+  // Scroll tracking
   useEffect(() => {
     const handleScroll = () => {
       setScrollPosition(window.scrollY);
@@ -264,7 +323,7 @@ const ServiceSnapshot: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Calculate parallax offset based on section position
+  // Parallax calculation
   const calculateParallax = (factor: number = 0.1) => {
     if (!sectionRef.current) return 0;
     const rect = sectionRef.current.getBoundingClientRect();
@@ -273,36 +332,16 @@ const ServiceSnapshot: React.FC = () => {
     return relativeScroll * factor;
   };
 
-  const services = [
-    {
-      title: 'Boarding & Installation',
-      description: 'From initial layout to secure installation, our boarding services set the foundation for perfection.',
-      icon: <DryboardIcon />,
-      link: '/services#boarding',
-      image: 'https://images.unsplash.com/photo-1513467655676-561b7d489a88?w=800&q=80&auto=format&fit=crop'
-    },
-    {
-      title: 'Taping & Mudding',
-      description: 'Precision taping and expertly applied mud ensure smooth, even surfaces every time.',
-      icon: <TapingIcon />,
-      link: '/services#taping',
-      image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&q=80&auto=format&fit=crop'
-    },
-    {
-      title: 'Sanding & Finishing',
-      description: 'Our finishing touches are all about detail—polished surfaces that make your space shine.',
-      icon: <FinishingIcon />,
-      link: '/services#sanding',
-      image: 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?w=800&q=80&auto=format&fit=crop'
-    },
-    {
-      title: 'Repairs & Textures',
-      description: 'From minor repairs to custom textures like knockdown or orange peel, we have got you covered.',
-      icon: <RepairsIcon />,
-      link: '/services#repairs',
-      image: 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop'
-    }
+  // Updated Placeholder structure to match Service type better
+  const placeholderServices: PlaceholderService[] = [
+    { id: -1, name: 'Boarding & Installation', description: 'Loading description...', icon: <DryboardIcon /> },
+    { id: -2, name: 'Taping & Mudding', description: 'Loading description...', icon: <TapingIcon /> },
+    { id: -3, name: 'Sanding & Finishing', description: 'Loading description...', icon: <FinishingIcon /> },
+    { id: -4, name: 'Repairs & Textures', description: 'Loading description...', icon: <RepairsIcon /> }
   ];
+
+  // Conditionally choose between fetched services or placeholders
+  const displayServices = isLoading ? placeholderServices : services;
 
   // CSS Keyframes for animations
   const keyframes = `
@@ -375,7 +414,7 @@ const ServiceSnapshot: React.FC = () => {
   `;
 
   return (
-    <section ref={sectionRef} id="service-section" className="w-full py-28 bg-gradient-to-b from-white to-neutral-offwhite/30 border-b border-neutral-softgray/10 overflow-hidden relative">
+    <section ref={sectionRef} id="service-section" className="w-full py-16 sm:py-20 md:py-28 bg-gradient-to-b from-white to-neutral-offwhite/30 border-b border-neutral-softgray/10 overflow-hidden relative">
       {/* Add keyframes */}
       <style>{keyframes}</style>
       
@@ -428,7 +467,7 @@ const ServiceSnapshot: React.FC = () => {
             }}
           >
             <span 
-              className="text-accent-gold text-xs font-heading tracking-[0.2em] uppercase relative inline-block"
+              className="text-accent-gold text-xs font-heading tracking-[0.2em] uppercase relative inline-block px-6"
               style={{
                 background: inView ? 'linear-gradient(90deg, transparent, rgba(213, 160, 33, 0.8), transparent)' : '',
                 backgroundSize: '200% auto',
@@ -443,7 +482,7 @@ const ServiceSnapshot: React.FC = () => {
             </span>
             
             <h2 
-              className="text-4xl md:text-5xl font-heading font-bold mt-4 mb-6 text-accent-sage tracking-tight leading-tight relative z-10 px-4"
+              className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold mt-4 mb-4 sm:mb-6 text-accent-sage tracking-tight leading-tight relative z-10 px-4"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? 'translateY(0)' : 'translateY(15px)',
@@ -495,7 +534,7 @@ const ServiceSnapshot: React.FC = () => {
             </div>
             
             <p 
-              className="text-lg md:text-xl text-neutral-charcoal/70 font-body leading-relaxed max-w-2xl mx-auto"
+              className="text-base sm:text-lg md:text-xl text-neutral-charcoal/70 font-body leading-relaxed max-w-2xl mx-auto px-4 sm:px-0"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? 'translateY(0)' : 'translateY(15px)',
@@ -511,17 +550,17 @@ const ServiceSnapshot: React.FC = () => {
         
         {/* Completely redesigned service card layout */}
         <div className="mb-16">
-          {/* Modern 2x2 grid for service cards on medium screens, stacked on mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10">
-            {services.map((service, index) => (
+          {/* Modern flex layout for service cards - stacked on mobile */}
+          <div className="flex flex-wrap gap-4 sm:gap-6 md:gap-8 lg:gap-10 justify-center">
+            {displayServices.map((service, index) => (
               <Link 
-                key={index} 
-                to={service.link}
-                className="group block h-full"
-                aria-label={`Learn more about ${service.title}`}
+                key={service.id || `placeholder-${index}`} 
+                to={"/services"} 
+                className="group block h-full mb-4 md:mb-0 flex-1 min-w-[280px] md:min-w-[22%] max-w-xs"
+                aria-label={`Learn more about ${service.name}`}
               >
                 <div 
-                  className="relative h-full overflow-hidden bg-white rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-2 hover:scale-[1.01]"
+                  className={`relative h-full overflow-hidden bg-white rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-2 hover:scale-[1.01] ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
                   style={{ 
                     opacity: inView ? 1 : 0,
                     transform: inView ? 'translateY(0)' : 'translateY(30px)',
@@ -532,22 +571,16 @@ const ServiceSnapshot: React.FC = () => {
                   <div className="relative w-full pb-[58%] overflow-hidden">
                     {/* Service icon badge with improved visual style */}
                     <div className="absolute top-5 right-5 z-20 w-16 h-16 flex items-center justify-center bg-white/95 text-accent-gold rounded-full shadow-lg transform group-hover:scale-110 group-hover:bg-white transition-all duration-300">
-                      {service.icon}
+                      {/* Use helper function to get icon */} 
+                      {getIconForService(service.name)}
                     </div>
 
                     {/* Image with proper fill, rendering at full quality */}
                     <img 
-                      src={service.image} 
-                      alt={service.title}
-                      className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-800 ease-out scale-100 group-hover:scale-110"
-                      loading="eager"
-                      onError={(e) => {
-                        // Fallback to a reliable image if the original fails to load
-                        const target = e.target as HTMLImageElement;
-                        if (target.src !== 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop') {
-                          target.src = 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop';
-                        }
-                      }}
+                      src={ (!isLoading ? ((service as Service).image_url || (service as Service).image) : null) || 'https://images.unsplash.com/photo-1606676539940-12768ce0e762?w=800&q=80&auto=format&fit=crop'}
+                      alt={service.name}
+                      className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-800 ease-out scale-100 group-hover:scale-110 ${isLoading ? 'animate-pulse bg-gray-300' : ''}`}
+                      loading="lazy"
                     />
 
                     {/* Enhanced gradient overlay for better text visibility */}
@@ -555,26 +588,28 @@ const ServiceSnapshot: React.FC = () => {
                     
                     {/* Service title overlay with improved positioning and emphasis */}
                     <div className="absolute bottom-0 left-0 w-full p-6">
-                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-1 group-hover:text-accent-gold transition-colors duration-300">
-                        {service.title}
+                      <h3 className="text-xl md:text-2xl font-bold text-white mb-1 group-hover:text-accent-gold transition-colors duration-300 line-clamp-2">
+                        {service.name}
                       </h3>
                       <div className="w-0 h-0.5 bg-accent-gold group-hover:w-16 transition-all duration-500 ease-out"></div>
                     </div>
                   </div>
 
                   {/* Description area with improved typography and spacing */}
-                  <div className="p-6 md:p-7">
-                    <p className="text-gray-700 mb-5 leading-relaxed">
-                      {service.description}
+                  <div className="p-4 sm:p-6 md:p-7">
+                    <p className={`text-gray-700 mb-4 sm:mb-5 leading-relaxed text-sm sm:text-base line-clamp-3 ${isLoading ? 'h-12 bg-gray-200 rounded animate-pulse' : ''}`}>
+                      {!isLoading && service.description}
                     </p>
                     
                     {/* Learn more link with clearer call to action */}
-                    <div className="flex items-center text-accent-sage font-semibold group-hover:text-accent-gold transition-colors duration-300">
-                      <span className="mr-2 uppercase text-sm tracking-wide">Learn More</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform transition-transform duration-300 group-hover:translate-x-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </div>
+                    {!isLoading && (
+                      <div className="flex items-center text-accent-sage font-semibold group-hover:text-accent-gold transition-colors duration-300">
+                        <span className="mr-2 uppercase text-sm tracking-wide">Learn More</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform transition-transform duration-300 group-hover:translate-x-2" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -582,11 +617,18 @@ const ServiceSnapshot: React.FC = () => {
           </div>
         </div>
         
+        {/* Display error message if loading failed */}
+        {error && !isLoading && (
+          <div className="w-full text-center text-red-600 bg-red-50 p-4 rounded-lg">
+            {error}
+          </div>
+        )}
+        
         {/* Enhanced call to action */}
-        <div className="text-center">
+        <div className="text-center mt-8 sm:mt-12">
           <Link 
             to="/services" 
-            className="inline-flex items-center px-10 py-4 bg-accent-sage text-white font-heading tracking-wide hover:bg-accent-gold transition-all duration-300 shadow-md hover:shadow-lg rounded-lg"
+            className="inline-flex items-center px-6 sm:px-10 py-3 sm:py-4 bg-accent-sage text-white font-heading tracking-wide hover:bg-accent-gold transition-all duration-300 shadow-md hover:shadow-lg rounded-lg text-sm sm:text-base"
           >
             <span className="mr-2">View All Services</span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">

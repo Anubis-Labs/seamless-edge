@@ -1,330 +1,292 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaQuoteLeft, FaSearch, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaQuoteLeft, FaSearch, FaCheck, FaTimes, FaSpinner, FaUser, FaBuilding, FaBriefcase } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import supabaseService from '../../services/supabaseService';
+import FileUpload from '../../components/common/FileUpload';
 
+// Interface matching Supabase testimonials table schema
 interface Testimonial {
   id: number;
   client_name: string;
+  client_title?: string | null;
+  client_company?: string | null;
   client_location: string;
-  project_type: string;
+  client_image?: string | null;
   content: string;
   rating: number;
-  date: string;
-  featured: boolean;
-  approved: boolean;
+  status: string;
+  service_type: string;
+  display_on_homepage: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const TestimonialsManagement: React.FC = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [projectTypes, setProjectTypes] = useState<string[]>([]);
-  const [filterProjectType, setFilterProjectType] = useState('');
-  const [filterApproved, setFilterApproved] = useState<boolean | null>(null);
-  
-  // Mock data for development
-  useEffect(() => {
-    // In real implementation, this would fetch from Supabase
-    const mockTestimonials: Testimonial[] = [
-      {
-        id: 1,
-        client_name: 'John Smith',
-        client_location: 'Seattle, WA',
-        project_type: 'Kitchen Remodel',
-        content: 'Seamless Edge did an outstanding job on our kitchen remodel. The attention to detail was impressive, and they completed the project on schedule. Our new kitchen is exactly what we envisioned!',
-        rating: 5,
-        date: '2023-12-10',
-        featured: true,
-        approved: true
-      },
-      {
-        id: 2,
-        client_name: 'Sarah Johnson',
-        client_location: 'Portland, OR',
-        project_type: 'Bathroom Renovation',
-        content: 'We hired Seamless Edge for our bathroom renovation and couldn\'t be happier with the results. The team was professional, clean, and the quality of work exceeded our expectations.',
-        rating: 5,
-        date: '2023-11-15',
-        featured: true,
-        approved: true
-      },
-      {
-        id: 3,
-        client_name: 'Michael Chen',
-        client_location: 'Bellevue, WA',
-        project_type: 'Deck Construction',
-        content: 'Our new deck is beautiful! The Seamless Edge team provided great suggestions during the design phase and executed the project flawlessly. We\'ve received many compliments from our neighbors.',
-        rating: 4,
-        date: '2023-10-22',
-        featured: false,
-        approved: true
-      },
-      {
-        id: 4,
-        client_name: 'Emily Davis',
-        client_location: 'Tacoma, WA',
-        project_type: 'Full Home Renovation',
-        content: 'Working with Seamless Edge on our home renovation was a great experience. They guided us through the entire process and helped us stay within budget while still achieving the look we wanted.',
-        rating: 5,
-        date: '2023-09-05',
-        featured: false,
-        approved: true
-      },
-      {
-        id: 5,
-        client_name: 'Robert Wilson',
-        client_location: 'Vancouver, WA',
-        project_type: 'Basement Finishing',
-        content: 'Seamless Edge transformed our unfinished basement into an amazing entertainment space. They worked efficiently and the quality of their work is outstanding.',
-        rating: 4,
-        date: '2023-08-18',
-        featured: false,
-        approved: false
-      }
-    ];
-    
-    // Load from localStorage or use mock data if not available
-    const storedTestimonials = localStorage.getItem('seamlessedge_testimonials');
-    const testimonialsData = storedTestimonials ? JSON.parse(storedTestimonials) : mockTestimonials;
-    
-    setTestimonials(testimonialsData);
-    
-    // Extract unique project types
-    const uniqueProjectTypes = Array.from(new Set(testimonialsData.map((testimonial: Testimonial) => testimonial.project_type)));
-    setProjectTypes(uniqueProjectTypes as string[]);
-    
-    setLoading(false);
-    
-    // Store mock data in localStorage for persistence during development
-    if (!storedTestimonials) {
-      localStorage.setItem('seamlessedge_testimonials', JSON.stringify(mockTestimonials));
+  const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+  const [filterServiceType, setFilterServiceType] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  // Fetch testimonials
+  const fetchTestimonials = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await supabaseService.testimonials.getTestimonials();
+      const formattedData = (data || []).map((t: any) => ({
+          ...t,
+          rating: t.rating ?? 5,
+          status: t.status ?? 'pending',
+          service_type: t.service_type ?? '',
+          display_on_homepage: t.display_on_homepage ?? false,
+      }));
+      setTestimonials(formattedData as Testimonial[]);
+      const uniqueServiceTypes = Array.from(new Set(formattedData.map((t: Testimonial) => t.service_type))).filter(st => st) as string[];
+      setServiceTypes(uniqueServiceTypes);
+    } catch (err: any) {
+      console.error("Error fetching testimonials:", err);
+      setError('Failed to load testimonials.');
+      toast.error('Failed to load testimonials.');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
-  
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, [fetchTestimonials]);
+
+  // Open modal for adding
   const handleAddNew = () => {
     setSelectedTestimonial({
-      id: Date.now(),
+      id: 0,
       client_name: '',
+      client_title: '',
+      client_company: '',
       client_location: '',
-      project_type: '',
+      service_type: '',
       content: '',
       rating: 5,
-      date: new Date().toISOString().split('T')[0],
-      featured: false,
-      approved: false
+      display_on_homepage: false,
+      status: 'pending',
+      client_image: ''
     });
     setIsModalOpen(true);
   };
-  
+
+  // Open modal for editing
   const handleEdit = (testimonial: Testimonial) => {
-    setSelectedTestimonial(testimonial);
+    setSelectedTestimonial(JSON.parse(JSON.stringify(testimonial)));
     setIsModalOpen(true);
   };
-  
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this testimonial?')) {
-      const updatedTestimonials = testimonials.filter(testimonial => testimonial.id !== id);
-      setTestimonials(updatedTestimonials);
-      localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
+
+  // Delete testimonial
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this testimonial?')) return;
+    setIsSaving(true);
+    try {
+      await supabaseService.testimonials.deleteTestimonial(id);
+      toast.success('Testimonial deleted!');
+      await fetchTestimonials();
+    } catch (err: any) {
+      console.error("Error deleting testimonial:", err);
+      toast.error(`Failed to delete: ${err.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
-  
-  const handleToggleFeatured = (id: number) => {
-    const updatedTestimonials = testimonials.map(testimonial => 
-      testimonial.id === id ? { ...testimonial, featured: !testimonial.featured } : testimonial
-    );
-    setTestimonials(updatedTestimonials);
-    localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
-  };
-  
-  const handleToggleApproved = (id: number) => {
-    const updatedTestimonials = testimonials.map(testimonial => 
-      testimonial.id === id ? { ...testimonial, approved: !testimonial.approved } : testimonial
-    );
-    setTestimonials(updatedTestimonials);
-    localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
-  };
-  
-  const handleSaveTestimonial = (testimonial: Testimonial) => {
-    let updatedTestimonials;
-    
-    if (testimonials.some(t => t.id === testimonial.id)) {
-      // Update existing testimonial
-      updatedTestimonials = testimonials.map(t => t.id === testimonial.id ? testimonial : t);
-    } else {
-      // Add new testimonial
-      updatedTestimonials = [...testimonials, testimonial];
+
+  // Toggle display_on_homepage status
+  const handleToggleFeatured = async (testimonial: Testimonial) => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await supabaseService.testimonials.updateTestimonial(testimonial.id, { display_on_homepage: !testimonial.display_on_homepage });
+      toast.success(`Homepage display status updated.`);
+      await fetchTestimonials();
+    } catch (err: any) {
+      console.error("Error updating homepage display status:", err);
+      toast.error(`Failed to update status: ${err.message}`);
+    } finally {
+      setIsSaving(false);
     }
-    
-    setTestimonials(updatedTestimonials);
-    localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
-    setIsModalOpen(false);
-    setSelectedTestimonial(null);
   };
-  
+
+  // Function to approve/reject (update status)
+  const handleUpdateStatus = async (testimonial: Testimonial, newStatus: string) => {
+     if (isSaving) return;
+     setIsSaving(true);
+    try {
+      await supabaseService.testimonials.updateTestimonial(testimonial.id, { status: newStatus });
+      toast.success(`Status updated to ${newStatus}.`);
+      await fetchTestimonials();
+    } catch (err: any) {
+      console.error("Error updating status:", err);
+      toast.error(`Failed to update status: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Save new or updated testimonial
+  const handleSaveTestimonial = async (testimonialToSave: Testimonial) => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setError(null);
+
+    if (!testimonialToSave.client_name || !testimonialToSave.service_type || !testimonialToSave.content) {
+        toast.error("Please fill Client Name, Service Type, and Content.");
+        setIsSaving(false);
+        return;
+    }
+
+    try {
+      const { id, created_at, updated_at, ...dataToSubmit } = testimonialToSave; 
+
+      if (id === 0) {
+        await supabaseService.testimonials.createTestimonial(dataToSubmit);
+        toast.success('Testimonial created!');
+      } else {
+        await supabaseService.testimonials.updateTestimonial(id, dataToSubmit);
+        toast.success('Testimonial updated!');
+      }
+      setIsModalOpen(false);
+      setSelectedTestimonial(null);
+      await fetchTestimonials();
+    } catch (err: any) {
+      console.error("Error saving testimonial:", err);
+      const errorMessage = `Failed to save testimonial: ${err.message}`;
+      toast.error(errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Add image upload handler
+  const handleImageUpload = (imageUrl: string) => {
+    if (selectedTestimonial) {
+      setSelectedTestimonial({
+        ...selectedTestimonial,
+        client_image: imageUrl
+      });
+      toast.success('Client image uploaded successfully');
+    }
+  };
+
+  // Filter logic
   const filteredTestimonials = testimonials.filter(testimonial => {
-    const matchesSearch = testimonial.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         testimonial.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         testimonial.client_location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || testimonial.status === filterStatus;
     
-    const matchesProjectType = filterProjectType === '' || testimonial.project_type === filterProjectType;
+    const matchesSearch = (
+        testimonial.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        testimonial.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (testimonial.client_location && testimonial.client_location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (testimonial.service_type && testimonial.service_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (testimonial.client_company && testimonial.client_company.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    const matchesServiceType = filterServiceType === '' || testimonial.service_type === filterServiceType;
     
-    const matchesApproved = filterApproved === null || testimonial.approved === filterApproved;
-    
-    return matchesSearch && matchesProjectType && matchesApproved;
+    return matchesSearch && matchesServiceType && matchesStatus;
   });
+
+   // Format date
+   const formatDate = (dateString: string | null | undefined) => {
+     if (!dateString) return 'N/A';
+     try { const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' }; return new Date(dateString).toLocaleDateString('en-US', options); } catch (e) { return dateString; }
+   };
 
   return (
     <>
-      <Helmet>
-        <title>Testimonials Management | Seamless Edge Admin</title>
-      </Helmet>
-      
+      <Helmet><title>Testimonials Management | Seamless Edge Admin</title></Helmet>
+
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Testimonials Management</h1>
         <p className="text-gray-600">Manage client testimonials and reviews for your business.</p>
+         {error && !isModalOpen && (<div className="bg-red-100 ..." role="alert">... {error} ...</div>)}
       </div>
-      
-      {/* Filters and Actions */}
+
+      {/* Filters and Actions - Disable controls when loading */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-col md:flex-row gap-4 md:items-center">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search testimonials..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <FaSearch className="absolute left-3 top-3 text-gray-400" />
-          </div>
-          
-          <select
-            className="py-2 pl-3 pr-8 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest"
-            value={filterProjectType}
-            onChange={(e) => setFilterProjectType(e.target.value)}
-          >
-            <option value="">All Project Types</option>
-            {projectTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-          
-          <select
-            className="py-2 pl-3 pr-8 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest"
-            value={filterApproved === null ? '' : filterApproved ? 'approved' : 'pending'}
-            onChange={(e) => {
-              if (e.target.value === '') setFilterApproved(null);
-              else if (e.target.value === 'approved') setFilterApproved(true);
-              else setFilterApproved(false);
-            }}
-          >
-            <option value="">All Status</option>
+          {/* Search Input */} 
+          <div className="relative"><input type="text" placeholder="Search testimonials..." className="pl-10 pr-4 py-2 ... disabled:opacity-50" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} disabled={isLoading} /><FaSearch className="absolute left-3 top-3 ..." /></div>
+          {/* Service Type Filter */} 
+          <select className="py-2 pl-3 pr-8 ... disabled:opacity-50" value={filterServiceType} onChange={(e) => setFilterServiceType(e.target.value)} disabled={isLoading}><option value="">All Service Types</option>{serviceTypes.map(type => (<option key={type} value={type}>{type}</option>))}</select>
+          {/* Status Filter */} 
+          <select className="py-2 pl-3 pr-8 ... disabled:opacity-50" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} disabled={isLoading}>
+            <option value="all">All Status</option>
             <option value="approved">Approved</option>
-            <option value="pending">Pending Approval</option>
+            <option value="pending">Pending</option>
           </select>
         </div>
-        
-        <button
-          onClick={handleAddNew}
-          className="bg-accent-forest text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-accent-forest-dark transition-colors"
-        >
-          <FaPlus className="mr-2" /> Add New Testimonial
-        </button>
+        {/* Add Button */} 
+        <button onClick={handleAddNew} className="bg-accent-forest ... disabled:opacity-50" disabled={isLoading || isSaving}><FaPlus className="mr-2" /> Add New Testimonial</button>
       </div>
-      
-      {/* Testimonials List */}
-      {loading ? (
-        <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-forest"></div>
-        </div>
+
+      {/* Testimonials List - Show loading or no results */} 
+      {isLoading ? (
+        <div className="flex justify-center py-12"><FaSpinner className="animate-spin h-12 w-12 text-accent-forest" /></div>
       ) : filteredTestimonials.length === 0 ? (
-        <div className="bg-white p-8 rounded-lg shadow text-center">
-          <FaQuoteLeft className="text-gray-300 text-6xl mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-700">No Testimonials Found</h3>
-          <p className="text-gray-500 mt-2">
-            {searchTerm || filterProjectType || filterApproved !== null ? 'No testimonials match your filters.' : 'Start by adding your first testimonial.'}
-          </p>
-          {(searchTerm || filterProjectType || filterApproved !== null) && (
-            <button 
-              className="mt-4 text-accent-forest hover:text-accent-forest-dark"
-              onClick={() => {
-                setSearchTerm('');
-                setFilterProjectType('');
-                setFilterApproved(null);
-              }}
-            >
-              Clear Filters
-            </button>
-          )}
+        <div className="bg-white p-8 ... text-center">
+          <FaQuoteLeft className="text-gray-300 ..." />
+          <h3 className="text-xl ...">No Testimonials Found</h3>
+          <p className="text-gray-500 ...">{searchTerm || filterServiceType || filterStatus !== 'all' ? 'No testimonials match filters.' : 'Add your first testimonial.'}</p>
+          {(searchTerm || filterServiceType || filterStatus !== 'all') && (<button className="mt-4 ..." onClick={() => { setSearchTerm(''); setFilterServiceType(''); setFilterStatus('all'); }}>Clear Filters</button>)}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        // Testimonials Grid - Render actual data
+        <div className="flex flex-wrap gap-6">
           {filteredTestimonials.map(testimonial => (
-            <div 
-              key={testimonial.id} 
-              className={`bg-white rounded-lg shadow-lg overflow-hidden ${!testimonial.approved ? 'border-l-4 border-yellow-400' : ''}`}
-            >
+            <div key={testimonial.id} className={`bg-white ... ${testimonial.status === 'pending' ? 'border-l-4 border-yellow-400' : testimonial.status === 'rejected' ? 'border-l-4 border-red-400' : ''} ...`}>
               <div className="p-6">
+                {/* Header: Name, Location, Rating */}
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800">{testimonial.client_name}</h3>
-                    <div className="text-gray-500 text-sm">{testimonial.client_location}</div>
+                  <div className="flex items-center">
+                    {testimonial.client_image ? (
+                      <img 
+                        src={testimonial.client_image} 
+                        alt={testimonial.client_name}
+                        className="w-12 h-12 rounded-full mr-3 object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full mr-3 bg-gray-200 flex items-center justify-center">
+                        <FaUser className="text-gray-400" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-bold ...">{testimonial.client_name}</h3>
+                      <div className="text-gray-500 ...">{testimonial.client_location}</div>
+                    </div>
                   </div>
-                  <div>
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={`text-${i < testimonial.rating ? 'yellow-500' : 'gray-300'}`}>★</span>
-                    ))}
-                  </div>
+                  <div>{[...Array(5)].map((_, i) => (<span key={i} className={`text-${i < testimonial.rating ? 'yellow-500' : 'gray-300'}`}>★</span>))}</div>
                 </div>
-                
-                <div className="bg-gray-50 p-4 rounded-lg mb-4 relative">
-                  <FaQuoteLeft className="text-gray-200 text-xl absolute top-2 left-2" />
-                  <p className="text-gray-700 italic pl-6 pr-2">{testimonial.content}</p>
-                </div>
-                
-                <div className="flex justify-between items-center">
+                {/* Content */} 
+                <div className="bg-gray-50 p-4 ... relative"><FaQuoteLeft className="text-gray-200 ..." /><p className="text-gray-700 ...">{testimonial.content}</p></div>
+                {/* Footer: Project Type, Date, Actions - Disable buttons while saving */} 
+                <div className="flex justify-between items-center mt-4">
                   <div>
-                    <span className="px-2 py-1 bg-gray-100 rounded text-sm">{testimonial.project_type}</span>
-                    <span className="text-gray-500 text-sm ml-2">
-                      {new Date(testimonial.date).toLocaleDateString()}
-                    </span>
+                      <span className="px-2 py-1 bg-gray-100 ...">{testimonial.service_type || 'N/A'}</span>
+                      <span className="text-gray-500 text-sm ml-2">{formatDate(testimonial.created_at)}</span>
                   </div>
-                  
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleToggleApproved(testimonial.id)}
-                      className={`p-1 rounded-full ${testimonial.approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
-                      title={testimonial.approved ? 'Approved' : 'Pending Approval'}
-                    >
-                      {testimonial.approved ? <FaCheck /> : <FaTimes />}
-                    </button>
-                    <button
-                      onClick={() => handleToggleFeatured(testimonial.id)}
-                      className="p-1 rounded-full"
-                      title={testimonial.featured ? 'Featured' : 'Not Featured'}
-                    >
-                      {testimonial.featured ? 
-                        <FaStar className="text-yellow-500" /> : 
-                        <FaRegStar className="text-gray-400" />
+                      {testimonial.status !== 'approved' && 
+                        <button onClick={() => handleUpdateStatus(testimonial, 'approved')} className={`p-1 rounded-full bg-green-100 text-green-700 disabled:opacity-50`} title="Approve" disabled={isSaving}><FaCheck /></button>
                       }
-                    </button>
-                    <button
-                      onClick={() => handleEdit(testimonial)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(testimonial.id)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Delete"
-                    >
-                      <FaTrash />
-                    </button>
+                      {testimonial.status !== 'pending' && 
+                        <button onClick={() => handleUpdateStatus(testimonial, 'pending')} className={`p-1 rounded-full bg-yellow-100 text-yellow-700 disabled:opacity-50`} title="Set to Pending" disabled={isSaving}><FaTimes /></button>
+                      }
+                      <button onClick={() => handleToggleFeatured(testimonial)} className="p-1 rounded-full disabled:opacity-50" title={testimonial.display_on_homepage ? 'Displayed on Homepage' : 'Not on Homepage'} disabled={isSaving}>{testimonial.display_on_homepage ? <FaStar className="text-yellow-500" /> : <FaRegStar className="text-gray-400" />}</button>
+                      <button onClick={() => handleEdit(testimonial)} className="text-blue-600 ... disabled:opacity-50" title="Edit" disabled={isSaving}><FaEdit /></button>
+                      <button onClick={() => handleDelete(testimonial.id)} className="text-red-600 ... disabled:opacity-50" title="Delete" disabled={isSaving}><FaTrash /></button>
                   </div>
                 </div>
               </div>
@@ -332,143 +294,93 @@ const TestimonialsManagement: React.FC = () => {
           ))}
         </div>
       )}
-      
-      {/* Testimonial Edit/Add Modal */}
+
+      {/* Testimonial Edit/Add Modal - Update fields, add loading/error */}
       {isModalOpen && selectedTestimonial && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6">
-                {selectedTestimonial.id ? 'Edit Testimonial' : 'Add New Testimonial'}
-              </h2>
-              
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                handleSaveTestimonial(selectedTestimonial);
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="fixed inset-0 ... z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl flex flex-col max-h-[90vh]">
+             {/* Modal Header */} 
+            <div className="p-6 border-b"><h2 className="text-2xl font-bold">{selectedTestimonial.id === 0 ? 'Add New Testimonial' : 'Edit Testimonial'}</h2></div>
+            {/* Modal Body */} 
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveTestimonial(selectedTestimonial); }} className="p-6 overflow-y-auto flex-grow">
+              {error && isModalOpen && (<div className="bg-red-100 ... mb-4" role="alert">... {error} ...</div>)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Client Name, Location, Project Type, Date Inputs - Disable while saving */} 
+                   <div><label className="block ...">Client Name</label><input type="text" required className="w-full ... disabled:bg-gray-100" value={selectedTestimonial.client_name} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_name: e.target.value})} disabled={isSaving} /></div>
+                   <div><label className="block ...">Client Location</label><input type="text" required className="w-full ... disabled:bg-gray-100" value={selectedTestimonial.client_location} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_location: e.target.value})} disabled={isSaving} /></div>
+                   <div><label className="block ...">Client Title</label><input type="text" className="w-full ..." value={selectedTestimonial.client_title || ''} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_title: e.target.value})} disabled={isSaving} /></div>
+                   <div><label className="block ...">Client Company</label><input type="text" className="w-full ..." value={selectedTestimonial.client_company || ''} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_company: e.target.value})} disabled={isSaving} /></div>
+                   <div><label className="block ...">Service Type *</label><input type="text" required list="serviceTypesList" className="w-full ..." value={selectedTestimonial.service_type} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, service_type: e.target.value})} disabled={isSaving} /><datalist id="serviceTypesList">{serviceTypes.map(type => (<option key={type} value={type} />))}</datalist></div>
+                   {/* Content Textarea */} 
+                  <div className="md:col-span-2"><label className="block ...">Testimonial Content</label><textarea required rows={4} className="w-full ... disabled:bg-gray-100" value={selectedTestimonial.content} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, content: e.target.value})} disabled={isSaving}></textarea></div>
+                  {/* Rating */} 
                   <div>
-                    <label className="block text-gray-700 font-medium mb-2">Client Name</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedTestimonial.client_name}
-                      onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_name: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Client Location</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedTestimonial.client_location}
-                      onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_location: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Project Type</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedTestimonial.project_type}
-                      onChange={(e) => setSelectedTestimonial({...selectedTestimonial, project_type: e.target.value})}
-                      list="projectTypes"
-                    />
-                    <datalist id="projectTypes">
-                      {projectTypes.map(type => (
-                        <option key={type} value={type} />
-                      ))}
-                    </datalist>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Date</label>
-                    <input
-                      type="date"
-                      required
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedTestimonial.date}
-                      onChange={(e) => setSelectedTestimonial({...selectedTestimonial, date: e.target.value})}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-700 font-medium mb-2">Testimonial Content</label>
-                    <textarea
-                      required
-                      rows={4}
-                      className="w-full border border-gray-300 rounded-lg p-2"
-                      value={selectedTestimonial.content}
-                      onChange={(e) => setSelectedTestimonial({...selectedTestimonial, content: e.target.value})}
-                    ></textarea>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Rating</label>
+                    <label className="block ...">Rating</label>
                     <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((rating) => (
-                        <button
-                          key={rating}
-                          type="button"
-                          className="text-2xl focus:outline-none"
-                          onClick={() => setSelectedTestimonial({...selectedTestimonial, rating})}
-                        >
-                          <span className={`${rating <= selectedTestimonial.rating ? 'text-yellow-500' : 'text-gray-300'}`}>
-                            ★
-                          </span>
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                        <button key={rating} type="button" className={`text-2xl focus:outline-none ${isSaving ? 'cursor-not-allowed opacity-50' : ''}`} onClick={() => !isSaving && setSelectedTestimonial({...selectedTestimonial, rating})} disabled={isSaving}>
+                            <span className={`${rating <= selectedTestimonial.rating ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
                         </button>
-                      ))}
+                        ))}
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-6">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="rounded text-accent-forest focus:ring-accent-forest h-5 w-5 mr-2"
-                        checked={selectedTestimonial.featured}
-                        onChange={(e) => setSelectedTestimonial({...selectedTestimonial, featured: e.target.checked})}
-                      />
-                      <span>Feature this testimonial</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="rounded text-accent-forest focus:ring-accent-forest h-5 w-5 mr-2"
-                        checked={selectedTestimonial.approved}
-                        onChange={(e) => setSelectedTestimonial({...selectedTestimonial, approved: e.target.checked})}
-                      />
-                      <span>Approved</span>
-                    </label>
+                   {/* Status Select */}
+                  <div>
+                    <label className="block ...">Status *</label>
+                    <select required className="w-full ..." value={selectedTestimonial.status} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, status: e.target.value})} disabled={isSaving}>
+                         <option value="pending">Pending</option>
+                         <option value="approved">Approved</option>
+                    </select>
                   </div>
-                </div>
-                
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button
-                    type="button"
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      setSelectedTestimonial(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-accent-forest text-white rounded-lg hover:bg-accent-forest-dark"
-                  >
-                    Save Testimonial
-                  </button>
-                </div>
-              </form>
-            </div>
+                   {/* Display on Homepage Checkbox */}
+                  <div className="flex items-center pt-4 md:pt-6">
+                    <label className="flex items-center"><input type="checkbox" className="rounded ..." checked={selectedTestimonial.display_on_homepage} onChange={(e) => setSelectedTestimonial({...selectedTestimonial, display_on_homepage: e.target.checked})} disabled={isSaving} /><span>Display on Homepage</span></label>
+                  </div>
+                  {/* Client Image Section */}
+                  <div className="md:col-span-2">
+                    <label className="block text-gray-700 font-medium mb-2">Client Photo</label>
+                    <div className="flex items-center mb-3">
+                      {selectedTestimonial.client_image ? (
+                        <div className="mr-4">
+                          <img 
+                            src={selectedTestimonial.client_image} 
+                            alt={selectedTestimonial.client_name}
+                            className="w-20 h-20 rounded-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mr-4">
+                          <FaUser className="text-gray-400 text-xl" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <FileUpload
+                          bucketName="testimonial-images"
+                          onUploadComplete={handleImageUpload}
+                          acceptedFileTypes="image/*"
+                          label="Upload Client Photo"
+                        />
+                        <div className="mt-2">
+                          <label className="block text-xs text-gray-500 mb-1">Or enter image URL directly:</label>
+                          <input 
+                            type="text" 
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm disabled:bg-gray-100" 
+                            value={selectedTestimonial.client_image || ''} 
+                            onChange={(e) => setSelectedTestimonial({...selectedTestimonial, client_image: e.target.value})} 
+                            placeholder="https://... or /images/..."
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              </div>
+              {/* Modal Footer */} 
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" className="px-4 py-2 ... disabled:opacity-50" onClick={() => { setIsModalOpen(false); setSelectedTestimonial(null); setError(null); }} disabled={isSaving}>Cancel</button>
+                <button type="submit" className="px-4 py-2 ... flex items-center disabled:opacity-50" disabled={isSaving}>{isSaving ? <FaSpinner className="animate-spin mr-2" /> : null} {isSaving ? 'Saving...' : 'Save Testimonial'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

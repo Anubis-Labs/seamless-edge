@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaCloudUploadAlt, FaCheckCircle } from 'react-icons/fa';
+import supabaseService from '../../services/supabaseService';
+import { supabase } from '../../services/supabaseService';
 
 interface ResumeUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   job?: {
-    id: string;
+    id: number;
     title: string;
     department: string;
   };
@@ -70,17 +72,41 @@ const ResumeUploadModal: React.FC<ResumeUploadModalProps> = ({ isOpen, onClose, 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
     
     setSubmitting(true);
     
-    // In a real application, you would upload the file to your server here
-    // For this example, we'll simulate a successful upload after a delay
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      // Upload resume file to Supabase
+      let filePath = '';
+      if (formData.resumeFile) {
+        const fileName = `${Date.now()}-${formData.resumeFile.name}`;
+        filePath = await supabaseService.storage.uploadFile(
+          formData.resumeFile,
+          'resumes',
+          fileName
+        );
+      }
+      
+      // Create application record in database
+      const applicationData = {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position,
+        message: formData.message,
+        resume_url: filePath,
+        job_id: job?.id || null,
+        created_at: new Date().toISOString()
+      };
+      
+      // Use the job applications service
+      await supabaseService.jobApplications.createApplication(applicationData);
+      
+      // Show success message
       setSubmitted(true);
       
       // Reset form after 5 seconds
@@ -97,7 +123,14 @@ const ResumeUploadModal: React.FC<ResumeUploadModalProps> = ({ isOpen, onClose, 
         setFileName('');
         onClose();
       }, 5000);
-    }, 2000);
+    } catch (error: any) {
+      console.error('Application submission error:', error);
+      setErrors(prev => ({
+        ...prev,
+        form: `Failed to submit application: ${error.message}`
+      }));
+      setSubmitting(false);
+    }
   };
 
   // Set position when job changes

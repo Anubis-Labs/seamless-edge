@@ -7,18 +7,28 @@ const QuotePage: React.FC = () => {
   return (
     <div className="quote-page">
       <Helmet>
-        <title>Instant Drywall Quote Calculator | Seamless Edge</title>
+        <title>Instant Quote Calculator | Seamless Edge</title>
         <meta 
           name="description" 
-          content="Get an accurate estimate for your drywall project in seconds with our instant quote calculator. Plan your budget with confidence."
+          content="Get an accurate estimate for your project in seconds with our instant quote calculator. Plan your budget with confidence."
         />
       </Helmet>
       
-      <PageHero
-        title="Instant Drywall Quote Calculator"
-        subtitle="Get an accurate estimate for your drywall project in seconds. Simply enter your project details below for a comprehensive breakdown."
-        backgroundImage="/images/services/drywall-measuring.jpg"
-      />
+      {/* Hero banner - hidden on mobile, visible on medium screens and up */}
+      <div className="hidden md:block">
+        <PageHero
+          title="Instant Quote Calculator"
+          subtitle="Get an accurate estimate for your project in seconds. Simply enter your project details below for a comprehensive breakdown."
+          backgroundImage="/images/updated/services/minimalist-bedroom.jpg"
+        />
+      </div>
+      
+      {/* Mobile-only title */}
+      <div className="md:hidden pt-8 pb-4 bg-accent-navy text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-2xl font-bold">Instant Quote</h1>
+        </div>
+      </div>
       
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">

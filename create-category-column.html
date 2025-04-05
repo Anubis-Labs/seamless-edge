@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Category Column in Services Table</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fix Category Column in Services Table</h1>
+  <p>This tool will add the missing 'category' column to your services table in Supabase.</p>
+  
+  <div class="form-group">
+    <label for="supabase-url">Supabase URL:</label>
+    <input type="text" id="supabase-url" value="https://abydznvlrzlcukrhxgqv.supabase.co" placeholder="https://yourproject.supabase.co">
+  </div>
+
+  <div class="form-group">
+    <label for="supabase-key">Supabase Anon Key:</label>
+    <input type="text" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+  </div>
+
+  <div class="form-group">
+    <label for="sql-statement">SQL to Execute:</label>
+    <textarea id="sql-statement" rows="6">ALTER TABLE public.services ADD COLUMN IF NOT EXISTS category TEXT;
+UPDATE public.services SET category = 'General' WHERE category IS NULL;
+CREATE INDEX IF NOT EXISTS idx_services_category ON public.services(category);</textarea>
+  </div>
+
+  <button id="fix-button">Fix Column Issue</button>
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('fix-button').addEventListener('click', async function() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = 'Processing...';
+
+      try {
+        const supabaseUrl = document.getElementById('supabase-url').value.trim();
+        const supabaseKey = document.getElementById('supabase-key').value.trim();
+        const sqlStatement = document.getElementById('sql-statement').value.trim();
+
+        if (!supabaseUrl || !supabaseKey) {
+          resultDiv.textContent = 'Error: Please provide both Supabase URL and key.';
+          return;
+        }
+
+        // Initialize Supabase client
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Method 1: Try using RPC if available
+        try {
+          resultDiv.textContent = 'Attempting to use RPC method...';
+          
+          const { data: rpcData, error: rpcError } = await supabase.rpc('run_sql', {
+            sql_query: sqlStatement
+          });
+          
+          if (!rpcError) {
+            resultDiv.textContent = 'Success using RPC method!\n\n' + JSON.stringify(rpcData, null, 2);
+            return;
+          } else {
+            resultDiv.textContent += '\nRPC method failed: ' + rpcError.message + '\nTrying alternative methods...';
+          }
+        } catch (rpcErr) {
+          resultDiv.textContent += '\nRPC function not available: ' + rpcErr.message + '\nTrying alternative methods...';
+        }
+
+        // Method 2: Update each service to force column creation
+        resultDiv.textContent += '\n\nAttempting to update services...';
+        
+        // Get all services
+        const { data: services, error: getError } = await supabase
+          .from('services')
+          .select('id, name');
+        
+        if (getError) {
+          resultDiv.textContent += '\nError getting services: ' + getError.message;
+          return;
+        }
+        
+        resultDiv.textContent += '\nFound ' + services.length + ' services to update.';
+        
+        // Try to update each service with a category
+        let successCount = 0;
+        for (const service of services) {
+          const { error: updateError } = await supabase
+            .from('services')
+            .update({ category: 'General' })
+            .eq('id', service.id);
+          
+          if (!updateError) {
+            successCount++;
+            resultDiv.textContent += '\nUpdated service ' + service.id + ' - ' + service.name;
+          } else {
+            resultDiv.textContent += '\nFailed to update service ' + service.id + ': ' + updateError.message;
+          }
+        }
+        
+        if (successCount > 0) {
+          resultDiv.textContent += '\n\nSuccess! Updated ' + successCount + ' out of ' + services.length + ' services.';
+          resultDiv.textContent += '\nThe category column should now exist. Try refreshing your admin page.';
+        } else {
+          resultDiv.textContent += '\n\nCould not update any services. You may need to contact Supabase support.';
+        }
+      } catch (err) {
+        resultDiv.textContent = 'An error occurred: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html> 

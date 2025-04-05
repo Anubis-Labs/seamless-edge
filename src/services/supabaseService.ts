@@ -1,342 +1,804 @@
-// This is a mock Supabase service for development purposes.
-// In a real application, you would use the actual Supabase client.
-// import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabaseClient'; // Adjust path if needed
 
-// const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-// const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-// const supabase = createClient(supabaseUrl, supabaseKey);
+// --- Individual Service Implementations ---
 
-// Blog posts service
+// Blog posts service (Table: blog_posts)
 export const blogService = {
-  getPosts: async () => {
-    // In a real app with Supabase:
-    // return await supabase.from('blog_posts').select('*').order('publishDate', { ascending: false });
+  getPosts: async (filters: Record<string, any> = {}) => {
+    let query = supabase.from('blog_posts').select('*');
     
-    // For now, return mock data from local storage or hardcoded data
-    const storedPosts = localStorage.getItem('seamlessedge_blog_posts');
-    return storedPosts ? JSON.parse(storedPosts) : [];
+    // Apply filters if provided
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    if (filters.category) {
+      query = query.eq('category', filters.category);
+    }
+    
+    // Update sorting to use published_at
+    query = query.order('published_at', { ascending: false });
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  
+  getPublishedPosts: async (limit?: number) => {
+    let query = supabase.from('blog_posts')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  
+  getFeaturedPosts: async (limit?: number) => {
+    // Since "featured" doesn't exist, let's get most recent published posts instead
+    let query = supabase.from('blog_posts')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
   
   getPostById: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('blog_posts').select('*').eq('id', id).single();
-    
-    // For now, return from local storage if available
-    const storedPosts = localStorage.getItem('seamlessedge_blog_posts');
-    const posts = storedPosts ? JSON.parse(storedPosts) : [];
-    return posts.find((post: any) => post.id === id) || null;
+    const { data, error } = await supabase.from('blog_posts').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+  
+  getPostBySlug: async (slug: string) => {
+    const { data, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).single();
+    if (error) throw error;
+    return data;
   },
   
   createPost: async (postData: any) => {
-    // In a real app with Supabase:
-    // return await supabase.from('blog_posts').insert(postData);
+    // Ensure updated_at is set for new posts
+    const dataToSave = {
+      ...postData,
+      updated_at: new Date().toISOString()
+    };
     
-    // For now, store in local storage
-    const storedPosts = localStorage.getItem('seamlessedge_blog_posts');
-    const posts = storedPosts ? JSON.parse(storedPosts) : [];
-    const newPost = { ...postData, id: Date.now() };
-    const updatedPosts = [...posts, newPost];
-    localStorage.setItem('seamlessedge_blog_posts', JSON.stringify(updatedPosts));
-    return newPost;
+    const { data, error } = await supabase.from('blog_posts').insert(dataToSave).select();
+    if (error) {
+      console.error('Error creating blog post:', error);
+      throw error;
+    }
+    return data[0];
   },
   
   updatePost: async (id: number, postData: any) => {
-    // In a real app with Supabase:
-    // return await supabase.from('blog_posts').update(postData).eq('id', id);
+    // Ensure updated_at is refreshed
+    const dataToSave = {
+      ...postData,
+      updated_at: new Date().toISOString()
+    };
     
-    // For now, update in local storage
-    const storedPosts = localStorage.getItem('seamlessedge_blog_posts');
-    const posts = storedPosts ? JSON.parse(storedPosts) : [];
-    const updatedPosts = posts.map((post: any) => post.id === id ? { ...post, ...postData } : post);
-    localStorage.setItem('seamlessedge_blog_posts', JSON.stringify(updatedPosts));
-    return { ...posts.find((post: any) => post.id === id), ...postData };
+    const { data, error } = await supabase.from('blog_posts').update(dataToSave).eq('id', id).select();
+    if (error) {
+      console.error('Error updating blog post:', error);
+      throw error;
+    }
+    return data[0];
   },
   
   deletePost: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('blog_posts').delete().eq('id', id);
-    
-    // For now, delete from local storage
-    const storedPosts = localStorage.getItem('seamlessedge_blog_posts');
-    const posts = storedPosts ? JSON.parse(storedPosts) : [];
-    const updatedPosts = posts.filter((post: any) => post.id !== id);
-    localStorage.setItem('seamlessedge_blog_posts', JSON.stringify(updatedPosts));
+    const { error } = await supabase.from('blog_posts').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting blog post:', error);
+      throw error;
+    }
     return { success: true };
+  },
+  
+  publishPost: async (id: number) => {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .update({
+        status: 'published',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    return data[0];
+  },
+  
+  unpublishPost: async (id: number) => {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .update({
+        status: 'draft',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    return data[0];
   }
 };
 
-// Gallery/projects service
+// Gallery/projects service (Table: projects)
 export const galleryService = {
-  getProjects: async () => {
-    // In a real app with Supabase:
-    // return await supabase.from('projects').select('*').order('createdAt', { ascending: false });
-    
-    // For now, return mock data from local storage or hardcoded data
-    const storedProjects = localStorage.getItem('seamlessedge_projects');
-    return storedProjects ? JSON.parse(storedProjects) : [];
+  getProjects: async (filters: Record<string, any> = {}) => {
+    let query = supabase.from('projects').select('*');
+    // Add filtering/sorting as needed
+    query = query.order('end_date', { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
-  
   getProjectById: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('projects').select('*').eq('id', id).single();
-    
-    // For now, return from local storage if available
-    const storedProjects = localStorage.getItem('seamlessedge_projects');
-    const projects = storedProjects ? JSON.parse(storedProjects) : [];
-    return projects.find((project: any) => project.id === id) || null;
+    const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
   },
-  
   createProject: async (projectData: any) => {
-    // In a real app with Supabase:
-    // return await supabase.from('projects').insert(projectData);
-    
-    // For now, store in local storage
-    const storedProjects = localStorage.getItem('seamlessedge_projects');
-    const projects = storedProjects ? JSON.parse(storedProjects) : [];
-    const newProject = { ...projectData, id: Date.now() };
-    const updatedProjects = [...projects, newProject];
-    localStorage.setItem('seamlessedge_projects', JSON.stringify(updatedProjects));
-    return newProject;
+    try {
+      // Sanitize project data
+      const cleanData = { ...projectData };
+      
+      // Ensure comparison_images is valid JSON if it exists
+      if (cleanData.comparison_images) {
+        if (typeof cleanData.comparison_images !== 'string') {
+          cleanData.comparison_images = JSON.stringify(cleanData.comparison_images);
+        }
+      }
+      
+      const { data, error } = await supabase.from('projects').insert(cleanData).select();
+      if (error) throw error;
+      return data[0];
+    } catch (err) {
+      console.error("Error creating project:", err);
+      throw err;
+    }
   },
-  
   updateProject: async (id: number, projectData: any) => {
-    // In a real app with Supabase:
-    // return await supabase.from('projects').update(projectData).eq('id', id);
-    
-    // For now, update in local storage
-    const storedProjects = localStorage.getItem('seamlessedge_projects');
-    const projects = storedProjects ? JSON.parse(storedProjects) : [];
-    const updatedProjects = projects.map((project: any) => 
-      project.id === id ? { ...project, ...projectData } : project
-    );
-    localStorage.setItem('seamlessedge_projects', JSON.stringify(updatedProjects));
-    return { ...projects.find((project: any) => project.id === id), ...projectData };
+    try {
+      // Sanitize project data
+      const cleanData = { ...projectData };
+      
+      // Ensure comparison_images is valid JSON if it exists
+      if (cleanData.comparison_images) {
+        if (typeof cleanData.comparison_images !== 'string') {
+          cleanData.comparison_images = JSON.stringify(cleanData.comparison_images);
+        }
+      }
+      
+      const { data, error } = await supabase.from('projects').update(cleanData).eq('id', id).select();
+      if (error) throw error;
+      return data[0];
+    } catch (err) {
+      console.error("Error updating project:", err);
+      throw err;
+    }
   },
-  
   deleteProject: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('projects').delete().eq('id', id);
-    
-    // For now, delete from local storage
-    const storedProjects = localStorage.getItem('seamlessedge_projects');
-    const projects = storedProjects ? JSON.parse(storedProjects) : [];
-    const updatedProjects = projects.filter((project: any) => project.id !== id);
-    localStorage.setItem('seamlessedge_projects', JSON.stringify(updatedProjects));
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) throw error;
     return { success: true };
   }
 };
 
-// Testimonials service
+// Testimonials service (Table: testimonials)
 export const testimonialService = {
-  getTestimonials: async () => {
-    // In a real app with Supabase:
-    // return await supabase.from('testimonials').select('*').order('createdAt', { ascending: false });
-    
-    // For now, return mock data from local storage or hardcoded data
-    const storedTestimonials = localStorage.getItem('seamlessedge_testimonials');
-    return storedTestimonials ? JSON.parse(storedTestimonials) : [];
+  getTestimonials: async (filters: Record<string, any> = {}) => {
+    let query = supabase.from('testimonials').select('*');
+     // Add filtering/sorting as needed, e.g., based on status (not approved)
+    query = query.order('created_at', { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
-  
+   getTestimonialById: async (id: number) => {
+    const { data, error } = await supabase.from('testimonials').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
   createTestimonial: async (testimonialData: any) => {
-    // In a real app with Supabase:
-    // return await supabase.from('testimonials').insert(testimonialData);
-    
-    // For now, store in local storage
-    const storedTestimonials = localStorage.getItem('seamlessedge_testimonials');
-    const testimonials = storedTestimonials ? JSON.parse(storedTestimonials) : [];
-    const newTestimonial = { ...testimonialData, id: Date.now() };
-    const updatedTestimonials = [...testimonials, newTestimonial];
-    localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
-    return newTestimonial;
+    const { data, error } = await supabase.from('testimonials').insert(testimonialData).select(); // Use status not approved
+    if (error) throw error;
+    return data[0];
   },
-  
   updateTestimonial: async (id: number, testimonialData: any) => {
-    // In a real app with Supabase:
-    // return await supabase.from('testimonials').update(testimonialData).eq('id', id);
-    
-    // For now, update in local storage
-    const storedTestimonials = localStorage.getItem('seamlessedge_testimonials');
-    const testimonials = storedTestimonials ? JSON.parse(storedTestimonials) : [];
-    const updatedTestimonials = testimonials.map((testimonial: any) => 
-      testimonial.id === id ? { ...testimonial, ...testimonialData } : testimonial
-    );
-    localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
-    return { ...testimonials.find((testimonial: any) => testimonial.id === id), ...testimonialData };
+    const { data, error } = await supabase.from('testimonials').update(testimonialData).eq('id', id).select();
+    if (error) throw error;
+    return data[0];
   },
-  
+  approveTestimonial: async (id: number) => { // Example specific action
+    const { data, error } = await supabase.from('testimonials').update({ status: 'approved' }).eq('id', id).select();
+    if (error) throw error;
+    return data[0];
+  },
   deleteTestimonial: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('testimonials').delete().eq('id', id);
-    
-    // For now, delete from local storage
-    const storedTestimonials = localStorage.getItem('seamlessedge_testimonials');
-    const testimonials = storedTestimonials ? JSON.parse(storedTestimonials) : [];
-    const updatedTestimonials = testimonials.filter((testimonial: any) => testimonial.id !== id);
-    localStorage.setItem('seamlessedge_testimonials', JSON.stringify(updatedTestimonials));
+    const { error } = await supabase.from('testimonials').delete().eq('id', id);
+    if (error) throw error;
     return { success: true };
   }
 };
 
-// Messages/Contact service
+// Messages/Contact service (Table: messages)
 export const messageService = {
-  getMessages: async () => {
-    // In a real app with Supabase:
-    // return await supabase.from('messages').select('*').order('createdAt', { ascending: false });
-    
-    // For now, return mock data from local storage or hardcoded data
-    const storedMessages = localStorage.getItem('seamlessedge_messages');
-    return storedMessages ? JSON.parse(storedMessages) : [];
+  getMessages: async (filters: Record<string, any> = {}) => {
+    let query = supabase.from('messages').select('*');
+    // Add filtering/sorting as needed, e.g., based on read status
+    query = query.order('created_at', { ascending: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
-  
+  getMessageById: async (id: number) => {
+    const { data, error } = await supabase.from('messages').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
   markAsRead: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('messages').update({ read: true }).eq('id', id);
-    
-    // For now, update in local storage
-    const storedMessages = localStorage.getItem('seamlessedge_messages');
-    const messages = storedMessages ? JSON.parse(storedMessages) : [];
-    const updatedMessages = messages.map((message: any) => 
-      message.id === id ? { ...message, read: true } : message
-    );
-    localStorage.setItem('seamlessedge_messages', JSON.stringify(updatedMessages));
-    return { success: true };
+    const { data, error } = await supabase.from('messages').update({ read: true }).eq('id', id).select();
+    if (error) throw error;
+    return data[0]; // Return the updated message
   },
-  
+  updateMessage: async (id: number, updateData: Partial<any>) => { // Using Partial<any> for flexibility, define Message type if available
+    const { data, error } = await supabase
+      .from('messages')
+      .update(updateData)
+      .eq('id', id)
+      .select(); // Select the updated record(s)
+    if (error) throw error;
+    return data ? data[0] : null; // Return the first updated record or null
+  },
   deleteMessage: async (id: number) => {
-    // In a real app with Supabase:
-    // return await supabase.from('messages').delete().eq('id', id);
-    
-    // For now, delete from local storage
-    const storedMessages = localStorage.getItem('seamlessedge_messages');
-    const messages = storedMessages ? JSON.parse(storedMessages) : [];
-    const updatedMessages = messages.filter((message: any) => message.id !== id);
-    localStorage.setItem('seamlessedge_messages', JSON.stringify(updatedMessages));
+    const { error } = await supabase.from('messages').delete().eq('id', id);
+    if (error) throw error;
     return { success: true };
   }
 };
 
-// Bookings service
+// Services service (Assuming Table: services)
+export const servicesService = {
+  getServices: async () => {
+    const { data, error } = await supabase.from('services').select('*').order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+  getServiceById: async (id: number) => {
+    const { data, error } = await supabase.from('services').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+  createService: async (serviceData: any) => {
+    // Ensure both image fields are set if either is provided
+    const preparedData = { ...serviceData };
+    if (preparedData.image && !preparedData.image_url) {
+      preparedData.image_url = preparedData.image;
+    } else if (preparedData.image_url && !preparedData.image) {
+      preparedData.image = preparedData.image_url;
+    }
+    
+    // Filter out category field if it's not accepted by the database
+    // This is a temporary fix until the database schema is updated
+    const { category, ...safeData } = preparedData;
+    
+    try {
+      // First try with category (preferred if the column exists)
+      const { data, error } = await supabase.from('services').insert(preparedData).select();
+      if (error && error.message && error.message.includes("column of 'services'")) {
+        // If error mentions column not found, try without category
+        const { data: fallbackData, error: fallbackError } = await supabase.from('services').insert(safeData).select();
+        if (fallbackError) throw fallbackError;
+        return fallbackData[0];
+      }
+      if (error) throw error;
+      return data[0];
+    } catch (err) {
+      console.error("Service creation error:", err);
+      throw err;
+    }
+  },
+  updateService: async (id: number, serviceData: any) => {
+    // Remove the image_url sync logic
+    const preparedData = { ...serviceData };
+    
+    // Filter out category field if it's not accepted by the database
+    // This is a temporary fix until the database schema is updated
+    const { category, ...safeData } = preparedData;
+    
+    try {
+      // First try with category (preferred if the column exists)
+      const { data, error } = await supabase.from('services').update(preparedData).eq('id', id).select();
+      if (error && error.message && error.message.includes("column of 'services'")) {
+        // If error mentions column not found, try without category
+        const { data: fallbackData, error: fallbackError } = await supabase.from('services').update(safeData).eq('id', id).select();
+        if (fallbackError) throw fallbackError;
+        return fallbackData[0];
+      }
+      if (error) throw error;
+      return data[0];
+    } catch (err) {
+      console.error("Service update error:", err);
+      throw err;
+    }
+  },
+  deleteService: async (id: number) => {
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+// Jobs service (Assuming Table: jobs - adapt schema as needed)
+export const jobsService = {
+  getJobs: async () => {
+    // Assuming a 'jobs' table exists
+    const { data, error } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+  getJobById: async (id: number) => {
+    const { data, error } = await supabase.from('jobs').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+  createJob: async (jobData: any) => {
+    const { data, error } = await supabase.from('jobs').insert(jobData).select();
+    if (error) throw error;
+    return data[0];
+  },
+  updateJob: async (id: number, jobData: any) => {
+    const { data, error } = await supabase.from('jobs').update(jobData).eq('id', id).select();
+    if (error) throw error;
+    return data[0];
+  },
+  deleteJob: async (id: number) => {
+    const { error } = await supabase.from('jobs').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+// Bookings service (Implementation from admin-setup.md - already added)
 export const bookingService = {
+  // ... existing booking service functions ...
   getBookings: async (filters: Record<string, any> = {}) => {
-    // In a real app with Supabase:
-    // let query = supabase.from('bookings').select(`
-    //   *,
-    //   clients(id, first_name, last_name, email, phone)
-    // `);
-    
-    // if (filters.startDate) {
-    //   query = query.gte('date', filters.startDate);
-    // }
-    // if (filters.endDate) {
-    //   query = query.lte('date', filters.endDate);
-    // }
-    // if (filters.status) {
-    //   query = query.eq('status', filters.status);
-    // }
-    // if (filters.serviceType) {
-    //   query = query.eq('service_type', filters.serviceType);
-    // }
-    
-    // const { data, error } = await query.order('date', { ascending: true });
-    // if (error) throw error;
-    // return data;
-    
-    // For now, return mock data from local storage or hardcoded data
-    const storedBookings = localStorage.getItem('seamlessedge_bookings');
-    return storedBookings ? JSON.parse(storedBookings) : [];
+    let query = supabase.from('bookings').select(`
+      *, 
+      clients(id, first_name, last_name, email, phone)
+    `);
+
+    if (filters.startDate) {
+      query = query.gte('date', filters.startDate);
+    }
+    if (filters.endDate) {
+      query = query.lte('date', filters.endDate);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.serviceType) {
+      query = query.eq('service_type', filters.serviceType);
+    }
+
+    const { data, error } = await query.order('date', { ascending: true });
+
+    if (error) throw error;
+    return data || []; // Ensure array return
   },
-  
+
   getBookingById: async (id: number) => {
-    // In a real app with Supabase:
-    // const { data, error } = await supabase
-    //   .from('bookings')
-    //   .select(`
-    //     *,
-    //     clients(id, first_name, last_name, email, phone)
-    //   `)
-    //   .eq('id', id)
-    //   .single();
-    // if (error) throw error;
-    // return data;
-    
-    // For now, return from local storage if available
-    const storedBookings = localStorage.getItem('seamlessedge_bookings');
-    const bookings = storedBookings ? JSON.parse(storedBookings) : [];
-    return bookings.find((booking: any) => booking.id === id) || null;
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        clients(id, first_name, last_name, email, phone)
+      `)
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
   },
-  
+
   createBooking: async (bookingData: any) => {
-    // In a real app with Supabase:
-    // const { data, error } = await supabase
-    //   .from('bookings')
-    //   .insert(bookingData)
-    //   .select();
-    // if (error) throw error;
-    // return data[0];
-    
-    // For now, store in local storage
-    const storedBookings = localStorage.getItem('seamlessedge_bookings');
-    const bookings = storedBookings ? JSON.parse(storedBookings) : [];
-    const newBooking = { ...bookingData, id: Date.now() };
-    const updatedBookings = [...bookings, newBooking];
-    localStorage.setItem('seamlessedge_bookings', JSON.stringify(updatedBookings));
-    return newBooking;
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert(bookingData)
+      .select();
+
+    if (error) throw error;
+    return data[0];
   },
-  
+
   updateBooking: async (id: number, bookingData: any) => {
-    // In a real app with Supabase:
-    // const { data, error } = await supabase
-    //   .from('bookings')
-    //   .update(bookingData)
-    //   .eq('id', id)
-    //   .select();
-    // if (error) throw error;
-    // return data[0];
-    
-    // For now, update in local storage
-    const storedBookings = localStorage.getItem('seamlessedge_bookings');
-    const bookings = storedBookings ? JSON.parse(storedBookings) : [];
-    const updatedBookings = bookings.map((booking: any) => 
-      booking.id === id ? { ...booking, ...bookingData } : booking
-    );
-    localStorage.setItem('seamlessedge_bookings', JSON.stringify(updatedBookings));
-    return { ...bookings.find((booking: any) => booking.id === id), ...bookingData };
+    const { data, error } = await supabase
+      .from('bookings')
+      .update(bookingData)
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return data[0];
   },
-  
+
   deleteBooking: async (id: number) => {
-    // In a real app with Supabase:
-    // const { error } = await supabase
-    //   .from('bookings')
-    //   .delete()
-    //   .eq('id', id);
-    // if (error) throw error;
-    // return { success: true };
-    
-    // For now, delete from local storage
-    const storedBookings = localStorage.getItem('seamlessedge_bookings');
-    const bookings = storedBookings ? JSON.parse(storedBookings) : [];
-    const updatedBookings = bookings.filter((booking: any) => booking.id !== id);
-    localStorage.setItem('seamlessedge_bookings', JSON.stringify(updatedBookings));
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
     return { success: true };
   },
-  
+
   sendReminder: async (bookingId: number) => {
-    // In a real app with Supabase, this would call a Supabase Edge Function
-    // that would send an email/SMS reminder
+    console.warn("Supabase Edge Function call for 'send-booking-reminder' not implemented.");
+    return { success: true }; // Placeholder
+  }
+};
+
+
+// Client Management Service (Implementation from admin-setup.md - already added)
+export const clientService = {
+  // ... existing client service functions ...
+   getClients: async (filters: Record<string, any> = {}) => {
+    let query = supabase.from('clients').select('*');
+
+    // Apply filters
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.city) {
+      query = query.eq('city', filters.city);
+    }
+    if (filters.search) {
+      query = query.or(`first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+    }
+
+    const { data, error } = await query
+      .order('last_name', { ascending: true });
+
+    if (error) throw error;
+    return data || []; // Ensure array return
+  },
+
+  getClientById: async (clientId: number) => { // Get simple client data
+     const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  getClientWithDetails: async (clientId: number) => {
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+
+    if (clientError) throw clientError;
+
+    // Get related data, handle potential errors gracefully
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('client_id', clientId);
+
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('client_id', clientId);
+
+    if (projectsError) console.error("Error fetching client projects:", projectsError.message);
+    if (bookingsError) console.error("Error fetching client bookings:", bookingsError.message);
+
+    return {
+      ...client,
+      projects: projects || [],
+      bookings: bookings || []
+    };
+  },
+
+  createClient: async (clientData: any) => {
+    const { data, error } = await supabase
+      .from('clients')
+      .insert(clientData)
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateClient: async (id: number, clientData: any) => {
+    const { data, error } = await supabase
+      .from('clients')
+      .update(clientData)
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  },
+
+  deleteClient: async (id: number) => {
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  },
+
+  sendClientEmail: async (clientId: number, emailData: any) => {
+    console.warn("Supabase Edge Function call for 'send-client-email' not implemented.");
+    return { success: true }; // Placeholder
+  }
+};
+
+// Settings Service (Table: settings)
+// Assuming a simple key-value store per section
+export const settingsService = {
+  getSettings: async (section: string | null = null) => {
+    let query = supabase.from('settings').select('*');
+    if (section) {
+      query = query.eq('section', section);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const settings: Record<string, Record<string, any>> = {};
+    (data || []).forEach((item: any) => {
+      if (!settings[item.section]) {
+        settings[item.section] = {};
+      }
+      try {
+        // Attempt to parse JSON, otherwise keep as string
+        settings[item.section][item.key] = JSON.parse(item.value);
+      } catch (e) {
+        settings[item.section][item.key] = item.value;
+      }
+    });
+    return settings;
+  },
+
+  // Gets settings for a specific section as a flat object
+  getSectionSettings: async (section: string): Promise<Record<string, any>> => {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('key, value')
+      .eq('section', section);
+    if (error) throw error;
     
-    // For now, just simulate successful sending
-    console.log(`Reminder sent for booking ${bookingId}`);
+    const sectionSettings: Record<string, any> = {};
+    (data || []).forEach((item: any) => {
+         try {
+            sectionSettings[item.key] = JSON.parse(item.value);
+         } catch(e) {
+            sectionSettings[item.key] = item.value;
+         }
+    });
+    return sectionSettings;
+  },
+
+  updateSettings: async (section: string, settingsToUpdate: Record<string, any>) => {
+    const updates = Object.entries(settingsToUpdate).map(([key, value]) => ({
+      section,
+      key,
+      value: typeof value === 'object' ? JSON.stringify(value) : String(value) // Store as string
+    }));
+
+    const { error } = await supabase
+      .from('settings')
+      .upsert(updates, { onConflict: 'section,key' });
+
+    if (error) {
+        console.error("Error updating settings:", error);
+        throw error;
+    }
     return { success: true };
   }
 };
 
-// Create a single export for all services
+// --- Storage Service --- 
+const DEFAULT_BUCKET = 'site-assets'; // Assuming a bucket for general site assets
+
+export const storageService = {
+  /**
+   * Uploads a file to Supabase Storage.
+   * @param file The file object to upload.
+   * @param bucketName The name of the bucket (defaults to DEFAULT_BUCKET).
+   * @param filePath Optional file path including filename within the bucket.
+   * @param options Optional upload options (e.g., { upsert: true }).
+   * @returns The path of the uploaded file within the bucket.
+   */
+  uploadFile: async (
+    file: File,
+    bucketName: string = DEFAULT_BUCKET,
+    filePath?: string,
+    options: { upsert?: boolean } = { upsert: false } 
+  ): Promise<string> => {
+    // We'll skip the session check and let Supabase handle auth errors directly
+    // This prevents users from being logged out unnecessarily
+    
+    const path = filePath || `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`; // Use timestamp prefix if no path provided
+    
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file, {
+        cacheControl: '3600', // Default cache control
+        upsert: options.upsert, // Allow overwriting
+      });
+
+    if (error) {
+      console.error('Error uploading file:', error);
+      
+      // Better error reporting without session invalidation
+      if (error.message.includes('Unauthorized') || error.message.includes('JWT')) {
+        throw new Error('Authentication error: Please try refreshing the page.');
+      }
+      
+      throw error;
+    }
+    
+    if (!data) {
+      throw new Error('Upload failed: No data returned from server');
+    }
+    
+    return data.path;
+  },
+
+  /**
+   * Gets the public URL for a file in Supabase Storage.
+   * @param filePath The path of the file within the bucket.
+   * @param bucketName The name of the bucket (defaults to DEFAULT_BUCKET).
+   * @returns The public URL object { publicUrl: string }.
+   */
+  getPublicUrl: (
+    filePath: string,
+    bucketName: string = DEFAULT_BUCKET
+  ): { publicUrl: string } => {
+    const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+    return data;
+  },
+  
+  /**
+   * Lists all files in a bucket or specific folder path
+   * @param bucketName The name of the bucket to list files from
+   * @param folderPath Optional folder path to filter by
+   * @returns Array of file objects
+   */
+  listFiles: async (
+    bucketName: string = DEFAULT_BUCKET,
+    folderPath?: string
+  ) => {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list(folderPath || '');
+      
+    if (error) {
+      console.error('Error listing files:', error);
+      throw error;
+    }
+    
+    return data || [];
+  },
+  
+  /**
+   * Deletes a file from storage
+   * @param filePath Path to the file to delete
+   * @param bucketName The name of the bucket
+   * @returns Success indicator
+   */
+  deleteFile: async (
+    filePath: string,
+    bucketName: string = DEFAULT_BUCKET
+  ): Promise<boolean> => {
+    // We'll remove explicit auth check here as well
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .remove([filePath]);
+      
+    if (error) {
+      console.error('Error deleting file:', error);
+      throw error;
+    }
+    
+    return true;
+  }
+};
+
+// Job applications service (Table: job_applications)
+export const jobApplicationsService = {
+  getApplications: async (filters: Record<string, any> = {}) => {
+    let query = supabase.from('job_applications').select('*');
+    
+    // Apply filters if provided
+    if (filters.jobId) {
+      query = query.eq('job_id', filters.jobId);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    // Sort by creation date, newest first
+    query = query.order('created_at', { ascending: false });
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  
+  getApplicationById: async (id: number) => {
+    const { data, error } = await supabase
+      .from('job_applications')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  
+  createApplication: async (applicationData: any) => {
+    const { data, error } = await supabase
+      .from('job_applications')
+      .insert(applicationData)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+  
+  updateApplicationStatus: async (id: number, status: string) => {
+    const { data, error } = await supabase
+      .from('job_applications')
+      .update({ status })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    return data[0];
+  },
+  
+  deleteApplication: async (id: number) => {
+    const { error } = await supabase
+      .from('job_applications')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+// --- Consolidate all services into a single export ---
+
 const supabaseService = {
   blog: blogService,
   gallery: galleryService,
   testimonials: testimonialService,
   messages: messageService,
-  bookings: bookingService
+  bookings: bookingService,
+  clients: clientService,
+  settings: settingsService,
+  services: servicesService,
+  jobs: jobsService,
+  jobApplications: jobApplicationsService, // Add job applications service
+  storage: storageService,
 };
 
 export default supabaseService; 

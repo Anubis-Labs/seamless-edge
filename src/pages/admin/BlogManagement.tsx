@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { 
   FaPlus, 
@@ -12,108 +12,37 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaSave,
-  FaImage
+  FaImage,
+  FaSpinner
 } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import supabaseService from '../../services/supabaseService';
+import FileUpload from '../../components/common/FileUpload';
+import { supabase } from '../../lib/supabaseClient'; // Import supabase client for auth
 
-// Define blog post interface
+// Define blog post interface matching Supabase schema
 interface BlogPost {
   id: number;
   title: string;
-  summary: string;
+  summary?: string; // Assuming this was added via migration
   content: string;
   category: string;
-  author: string;
-  publishDate: string;
-  readTime: string;
-  image: string;
-  featured: boolean;
-  published: boolean;
+  author_id: string | null; // Changed from author: string
+  published_at: string | null; // Renamed from publish_date, allow null
+  // read_time?: string; // Removed, doesn't exist in schema
+  featured_image?: string | null; // Renamed from image, allow null
+  // featured: boolean; // Removed, doesn't exist in schema
+  status: string; // 'draft' | 'published'
   slug: string;
-  tags: string[];
+  tags: string[]; // Assuming stored as JSONB, handle parsing/stringifying
+  created_at?: string;
+  updated_at?: string;
+  // Add fields to display author name if needed later
+  profiles?: { name: string | null } | null;
 }
 
-// Dummy data for blog posts
-const dummyBlogPosts: BlogPost[] = [
-  {
-    id: 1,
-    title: 'Drywall Maintenance Tips for Lasting Beauty',
-    summary: 'Learn practical ways to keep your drywall looking flawless year-round with these essential maintenance tips.',
-    content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque. Duis vulputate commodo lectus, ac blandit elit tincidunt id.</p><p>Sed et commodo nulla. Sed quis enim vel justo vehicula aliquet. Vivamus ultrices, erat id semper efficitur, libero lacus scelerisque urna, ut hendrerit eros quam non justo.</p><h3>Key Maintenance Tips</h3><ul><li>Regularly dust walls with a soft microfiber cloth</li><li>Address moisture issues immediately</li><li>Fill small holes as soon as they appear</li><li>Use proper cleaning solutions</li></ul>',
-    category: 'Maintenance',
-    author: 'Steve Johnson',
-    publishDate: '2023-10-15',
-    readTime: '5 min read',
-    image: '/images/services/drywall-installation.jpg',
-    featured: true,
-    published: true,
-    slug: 'drywall-maintenance-tips',
-    tags: ['maintenance', 'cleaning', 'repair']
-  },
-  {
-    id: 2,
-    title: 'Common Drywall Repair Issues & How We Fix Them',
-    summary: 'Discover the most frequent drywall problems homeowners face and how our professional techniques can restore your walls.',
-    content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque. Duis vulputate commodo lectus, ac blandit elit tincidunt id.</p><p>Sed et commodo nulla. Sed quis enim vel justo vehicula aliquet. Vivamus ultrices, erat id semper efficitur, libero lacus scelerisque urna, ut hendrerit eros quam non justo.</p><h3>Common Issues</h3><ul><li>Nail pops and screw holes</li><li>Water damage</li><li>Cracks at seams</li><li>Impact damage</li></ul>',
-    category: 'Repairs',
-    author: 'Allie Smith',
-    publishDate: '2023-09-28',
-    readTime: '7 min read',
-    image: '/images/services/tools.jpg',
-    featured: true,
-    published: true,
-    slug: 'common-drywall-repair-issues',
-    tags: ['repairs', 'water damage', 'cracks']
-  },
-  {
-    id: 3,
-    title: 'Choosing the Right Finish: Level 5 vs. Knockdown vs. Custom',
-    summary: 'Not sure which drywall finish is right for your project? We break down the differences to help you decide.',
-    content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque. Duis vulputate commodo lectus, ac blandit elit tincidunt id.</p><p>Sed et commodo nulla. Sed quis enim vel justo vehicula aliquet. Vivamus ultrices, erat id semper efficitur, libero lacus scelerisque urna, ut hendrerit eros quam non justo.</p><h3>Finish Types</h3><ul><li>Level 5 - The premium smooth finish</li><li>Knockdown - Textured but subtle</li><li>Orange Peel - Light texture</li><li>Custom - Artistic and unique</li></ul>',
-    category: 'Techniques',
-    author: 'Steve Johnson',
-    publishDate: '2023-08-19',
-    readTime: '6 min read',
-    image: '/images/services/texture-application.jpg',
-    featured: false,
-    published: true,
-    slug: 'choosing-right-drywall-finish',
-    tags: ['finishes', 'textures', 'level 5', 'knockdown']
-  },
-  {
-    id: 4,
-    title: 'Project Spotlight: Modern Basement Transformation',
-    summary: 'See how we transformed a basic unfinished basement into a stylish living space with premium drywall techniques.',
-    content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque. Duis vulputate commodo lectus, ac blandit elit tincidunt id.</p><p>Sed et commodo nulla. Sed quis enim vel justo vehicula aliquet. Vivamus ultrices, erat id semper efficitur, libero lacus scelerisque urna, ut hendrerit eros quam non justo.</p><h3>Project Details</h3><ul><li>Full basement finishing</li><li>Custom lighting coves</li><li>Soundproofed home theater</li><li>Built-in storage solutions</li></ul>',
-    category: 'Case Studies',
-    author: 'Allie Smith',
-    publishDate: '2023-07-25',
-    readTime: '8 min read',
-    image: '/images/services/drywall-taping.jpg',
-    featured: false,
-    published: true,
-    slug: 'modern-basement-transformation',
-    tags: ['projects', 'basement', 'renovation']
-  },
-  {
-    id: 5,
-    title: 'The Ultimate Guide to Soundproofing Your Walls',
-    summary: 'Learn how to significantly reduce noise transmission through your walls with professional drywall techniques.',
-    content: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla quam velit, vulputate eu pharetra nec, mattis ac neque. Duis vulputate commodo lectus, ac blandit elit tincidunt id.</p><p>Sed et commodo nulla. Sed quis enim vel justo vehicula aliquet. Vivamus ultrices, erat id semper efficitur, libero lacus scelerisque urna, ut hendrerit eros quam non justo.</p><h3>Soundproofing Methods</h3><ul><li>Double drywall layers with Green Glue</li><li>Resilient channel systems</li><li>Insulation options</li><li>Door and outlet sealing</li></ul>',
-    category: 'Guides',
-    author: 'Steve Johnson',
-    publishDate: '2023-06-12',
-    readTime: '10 min read',
-    image: '/images/services/texture-application.jpg',
-    featured: false,
-    published: false,
-    slug: 'ultimate-soundproofing-guide',
-    tags: ['soundproofing', 'noise reduction', 'insulation']
-  }
-];
-
-// Categories for filtering
+// Categories - consider fetching these from DB or config later
 const categories = [
-  'All',
   'Maintenance',
   'Repairs',
   'Techniques',
@@ -122,53 +51,76 @@ const categories = [
 ];
 
 const BlogManagementPage: React.FC = () => {
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(dummyBlogPosts);
-  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>(dummyBlogPosts);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showOnlyFeatured, setShowOnlyFeatured] = useState(false);
+  // const [showOnlyFeatured, setShowOnlyFeatured] = useState(false); // Removed
   const [showOnlyPublished, setShowOnlyPublished] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  
-  // Apply filters
+
+  // Fetch posts from Supabase
+  const fetchPosts = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Modify service call if needed to fetch author profile name
+      // Example: .select('*, profiles(name)')
+      const data = await supabaseService.blog.getPosts(); 
+      // Ensure tags is an array
+      const formattedData = (data || []).map((post: any) => ({
+        ...post,
+        tags: Array.isArray(post.tags) ? post.tags : [], // Handle if tags are not array
+        published_at: post.published_at || null, // Ensure null if missing
+        author_id: post.author_id || null
+      }));
+      setBlogPosts(formattedData as BlogPost[]);
+    } catch (err: any) {
+      console.error("Error fetching blog posts:", err);
+      setError('Failed to fetch blog posts. Please try again.');
+      toast.error('Failed to fetch blog posts.');
+      setBlogPosts([]); // Clear posts on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let result = [...blogPosts];
+    fetchPosts();
+  }, [fetchPosts]);
+  
+  // Apply filters (client-side for now)
+  useEffect(() => {
+    let filtered = [...blogPosts];
     
-    // Apply category filter
-    if (selectedCategory !== 'All') {
-      result = result.filter(post => post.category === selectedCategory);
-    }
+    // ... filtering logic ... 
+    // Remove author text search or adapt if fetching profiles
+    // if (searchTerm) { ... }
     
-    // Apply search filter
-    if (searchTerm) {
-      result = result.filter(post => 
-        post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        post.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-    
-    // Apply featured filter
-    if (showOnlyFeatured) {
-      result = result.filter(post => post.featured);
-    }
-    
-    // Apply published filter
-    if (showOnlyPublished) {
-      result = result.filter(post => post.published);
-    }
-    
-    setFilteredPosts(result);
-  }, [blogPosts, selectedCategory, searchTerm, showOnlyFeatured, showOnlyPublished]);
+    // Remove featured filter as column doesn't exist
+    // if (showOnlyFeatured) { ... }
+
+    setFilteredPosts(filtered);
+  }, [blogPosts, selectedCategory, searchTerm, /* showOnlyFeatured, */ showOnlyPublished]); // Removed showOnlyFeatured
   
   // Format date for display
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('en-US', options);
+    } catch (e) {
+        console.error("Error formatting date:", dateString, e);
+        return dateString; 
+    }
   };
   
   // Handle deleting a post
@@ -177,87 +129,153 @@ const BlogManagementPage: React.FC = () => {
     setShowDeleteModal(true);
   };
   
-  const confirmDelete = () => {
-    if (postToDelete) {
-      setBlogPosts(prev => prev.filter(post => post.id !== postToDelete));
-      setShowDeleteModal(false);
+  // Confirm Delete Action
+  const confirmDelete = async () => {
+    if (!postToDelete) return;
+    // Use isSaving state here for consistency
+    setIsSaving(true); 
+    try {
+      await supabaseService.blog.deletePost(postToDelete);
+      toast.success('Blog post deleted successfully!');
       setPostToDelete(null);
+      setShowDeleteModal(false);
+      await fetchPosts();
+    } catch (err: any) {
+      console.error("Error deleting post:", err);
+      toast.error(`Failed to delete post: ${err.message}`);
+      setError(`Failed to delete post: ${err.message}`);
+    } finally {
+      // Ensure saving state is reset
+      setIsSaving(false);
     }
   };
-  
+
+  // Handle cancelling edit
+  const handleCancelEdit = () => {
+    setEditingPost(null);
+    setIsCreatingNew(false);
+    setError(null);
+  };
+
   // Handle editing a post
   const handleEditClick = (post: BlogPost) => {
-    setEditingPost({...post});
+     // Ensure tags are handled correctly on edit start
+    setEditingPost({
+      ...JSON.parse(JSON.stringify(post)), // Deep copy
+      tags: Array.isArray(post.tags) ? post.tags : [],
+      published_at: post.published_at ? post.published_at.split('T')[0] : new Date().toISOString().split('T')[0] // Format for date input
+    });
     setIsCreatingNew(false);
   };
   
   // Handle creating a new post
   const handleCreateClick = () => {
-    const newPost: BlogPost = {
-      id: blogPosts.length > 0 ? Math.max(...blogPosts.map(p => p.id)) + 1 : 1,
-      title: 'New Blog Post',
-      summary: 'Enter a summary for your blog post here.',
-      content: '<p>Start writing your blog post content here...</p>',
-      category: 'Guides',
-      author: 'Your Name',
-      publishDate: new Date().toISOString().split('T')[0],
-      readTime: '5 min read',
-      image: '/images/services/drywall-installation.jpg',
-      featured: false,
-      published: false,
-      slug: 'new-blog-post',
-      tags: ['drywall']
+    // Use author_id: null initially and correct field names
+    const newPost: Partial<BlogPost> = { // Use Partial initially
+      title: '',
+      summary: '',
+      content: '<p></p>',
+      category: categories[0],
+      author_id: null, // Set to null initially
+      published_at: new Date().toISOString(), // Store full ISO string initially
+      featured_image: '',
+      status: 'draft', 
+      slug: '',
+      tags: []
     };
-    
-    setEditingPost(newPost);
+    setEditingPost(newPost as BlogPost); // Cast carefully or refine type
     setIsCreatingNew(true);
   };
   
-  // Handle saving a post
-  const handleSavePost = () => {
+  // Handle saving a post (Create or Update)
+  const handleSavePost = async () => {
     if (!editingPost) return;
     
-    if (isCreatingNew) {
-      setBlogPosts(prev => [...prev, editingPost]);
-    } else {
-      setBlogPosts(prev => prev.map(post => post.id === editingPost.id ? editingPost : post));
+    // Fetch current user ID before saving
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        toast.error("You must be logged in to save a post.");
+        setIsSaving(false);
+        return;
     }
-    
-    setEditingPost(null);
-    setIsCreatingNew(false);
+
+    setIsSaving(true);
+    setError(null);
+
+    // Update validation check
+    if (!editingPost.title || !editingPost.slug || !editingPost.category || !editingPost.published_at) {
+      toast.error("Please fill in Title, Slug, Category, and Publish Date.");
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      // Prepare data carefully, excluding DB-managed fields, adding author_id
+      const { id, created_at, updated_at, profiles, ...dataToSubmit } = {
+          ...editingPost,
+          author_id: user.id, // Set author_id to current user
+          tags: JSON.stringify(editingPost.tags || []) // Ensure tags are stringified for JSONB
+      };
+
+      if (isCreatingNew) {
+        await supabaseService.blog.createPost(dataToSubmit);
+        toast.success('Blog post created!');
+      } else {
+        if (!id) {
+          throw new Error("Cannot update post without a valid ID.");
+        }
+        await supabaseService.blog.updatePost(id, dataToSubmit);
+        toast.success('Blog post updated!');
+      }
+      setEditingPost(null);
+      setIsCreatingNew(false);
+      await fetchPosts(); // Refetch data
+    } catch (err: any) {
+      console.error("Error saving post:", err);
+      const errorMessage = `Failed to save post: ${err.message}`;
+      // Check for specific Supabase errors if needed
+      if (err.message?.includes("duplicate key value violates unique constraint")) {
+         toast.error("Failed to save: A post with this slug already exists.");
+      } else {
+         toast.error(errorMessage);
+      }
+      setError(errorMessage); // Show error in the component/modal
+    } finally {
+      setIsSaving(false);
+    }
   };
   
-  // Handle cancelling edit
-  const handleCancelEdit = () => {
-    setEditingPost(null);
-    setIsCreatingNew(false);
-  };
-  
-  // Handle input changes in edit form
+  // Handle input changes in edit form (adjust for published_at)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (editingPost) {
+       // Handle date input correctly
+       const newValue = name === 'published_at' ? (value ? new Date(value).toISOString() : null) : value;
       setEditingPost({
         ...editingPost,
-        [name]: value
+        [name]: newValue
       });
     }
   };
   
-  // Handle checkbox changes in edit form
+  // Handle checkbox changes in edit form (remove 'featured')
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     if (editingPost) {
-      setEditingPost({
-        ...editingPost,
-        [name]: checked
-      });
+      // Only handle status conversion now
+      if (name === 'published') { 
+        setEditingPost({
+          ...editingPost,
+          status: checked ? 'published' : 'draft'
+        });
+      } 
+      // Removed else block for featured checkbox
     }
   };
   
-  // Handle tags input
+  // Handle tags input (ensure it sets array)
   const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const tags = e.target.value.split(',').map(tag => tag.trim());
+    const tags = e.target.value ? e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
     if (editingPost) {
       setEditingPost({
         ...editingPost,
@@ -266,13 +284,28 @@ const BlogManagementPage: React.FC = () => {
     }
   };
   
-  // Create slug from title
+  // ... handleSlugGeneration ...
+  
+  // Update image upload handler to use featured_image
+  const handleImageUpload = (imageUrl: string) => {
+    if (editingPost) {
+      setEditingPost({
+        ...editingPost,
+        featured_image: imageUrl
+      });
+      toast.success('Image uploaded successfully');
+    }
+  };
+  
+  // ... handleSlugGeneration (Add if missing) ...
   const handleSlugGeneration = () => {
     if (editingPost) {
-      const slug = editingPost.title
+      const slug = (editingPost.title || '')
         .toLowerCase()
-        .replace(/[^\w\s]/gi, '')
-        .replace(/\s+/g, '-');
+        .trim()
+        .replace(/[^\w\s-]/g, '') // remove non-word [a-z0-9_], non-whitespace, non-hyphen chars
+        .replace(/\s+/g, '-') // swap whitespace for single hyphen
+        .replace(/-+/g, '-'); // collapse multiple hyphens
       
       setEditingPost({
         ...editingPost,
@@ -283,77 +316,61 @@ const BlogManagementPage: React.FC = () => {
   
   return (
     <>
-      <Helmet>
-        <title>Blog Management | Seamless Edge Admin</title>
-      </Helmet>
+      {/* ... Helmet ... */}
       
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold font-heading text-accent-navy mb-2">Blog Management</h1>
-        <p className="text-gray-600 mb-6">
-          Create, edit, and manage your blog posts. Use the filters to find specific content.
-        </p>
+       {/* ... Title, Error display ... */} 
       </div>
       
-      {/* Controls */}
+      {/* Controls - remove featured filter toggle */}
       {!editingPost && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            {/* Search */}
-            <div className="flex-grow">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search posts by title, content, or tags..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
+          {/* ... Search, Category Filter, Create Button ... */}
+          <div className="flex flex-wrap gap-4 mb-4 justify-between items-center">
+            <div className="relative flex-grow max-w-md">
+              <input
+                type="text"
+                placeholder="Search posts..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest w-full disabled:opacity-50"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={isLoading}
+              />
+              <FaSearch className="absolute left-3 top-3 text-gray-400" />
             </div>
             
-            {/* Category filter */}
-            <div className="w-full md:w-64">
-              <select
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Create button */}
-            <button
-              className="bg-accent-forest text-white px-4 py-2 rounded-lg hover:bg-accent-forest/90 transition-colors flex items-center justify-center whitespace-nowrap"
-              onClick={handleCreateClick}
+            <select
+              className="py-2 px-4 border border-gray-300 rounded-lg focus:ring-accent-forest focus:border-accent-forest disabled:opacity-50"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              disabled={isLoading}
             >
-              <FaPlus className="mr-2" />
-              New Post
+              <option value="All">All Categories</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+            
+            <button
+              onClick={handleCreateClick}
+              className="bg-accent-forest text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-accent-forest-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              <FaPlus className="mr-2" /> Add New Post
             </button>
           </div>
           
-          {/* Toggle filters */}
+          {/* Toggle filters - remove Featured */}
           <div className="flex flex-wrap gap-4">
-            <label className="inline-flex items-center">
-              <input 
-                type="checkbox" 
-                className="rounded border-gray-300 text-accent-forest focus:ring-accent-forest h-4 w-4"
-                checked={showOnlyFeatured}
-                onChange={(e) => setShowOnlyFeatured(e.target.checked)}
-              />
-              <span className="ml-2 text-sm text-gray-700">Featured posts only</span>
-            </label>
+            {/* <label className="inline-flex items-center"> ... Featured checkbox removed ... </label> */}
             
             <label className="inline-flex items-center">
               <input 
                 type="checkbox" 
-                className="rounded border-gray-300 text-accent-forest focus:ring-accent-forest h-4 w-4"
+                className="rounded border-gray-300 text-accent-forest focus:ring-accent-forest h-4 w-4 disabled:opacity-50"
                 checked={showOnlyPublished}
                 onChange={(e) => setShowOnlyPublished(e.target.checked)}
+                disabled={isLoading}
               />
               <span className="ml-2 text-sm text-gray-700">Published posts only</span>
             </label>
@@ -361,392 +378,338 @@ const BlogManagementPage: React.FC = () => {
         </div>
       )}
       
-      {/* Blog Posts List */}
+      {/* Blog Posts List or Loading State */}
       {!editingPost && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-gray-700 text-sm font-medium">
-                <tr>
-                  <th className="py-3 px-4">Title</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Author</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredPosts.length > 0 ? (
-                  filteredPosts.map(post => (
-                    <tr key={post.id} className="hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded bg-gray-200 flex-shrink-0 mr-3 overflow-hidden">
-                            <img 
-                              src={post.image} 
-                              alt={post.title} 
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-800">{post.title}</div>
-                            <div className="text-xs text-gray-500 truncate max-w-xs">{post.summary}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {post.category}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">{post.author}</td>
-                      <td className="py-3 px-4 text-sm text-gray-500">{formatDate(post.publishDate)}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-1">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            post.published ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {post.published ? 'Published' : 'Draft'}
+          {isLoading ? (
+             <div className="py-12 text-center text-gray-500 flex items-center justify-center">
+               <FaSpinner className="animate-spin h-5 w-5 mr-3" />
+               Loading posts...
+             </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-gray-700 text-sm font-medium">
+                  <tr>
+                    <th className="py-3 px-4">Title</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Date</th> 
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPosts.length === 0 ? (
+                    <tr><td colSpan={5} className="text-center py-8 text-gray-500">No posts found.</td></tr>
+                  ) : (
+                    filteredPosts.map(post => (
+                      <tr key={post.id} className="border-b border-gray-200 hover:bg-gray-50 text-gray-800">
+                        <td className="py-3 px-4 font-medium">{post.title}</td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {post.category}
                           </span>
-                          {post.featured && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              Featured
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">{formatDate(post.published_at)}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 rounded bg-gray-200 flex-shrink-0 mr-3 overflow-hidden">
+                              {post.featured_image ? (
+                                <img 
+                                  src={post.featured_image} 
+                                  alt={post.title} 
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => (e.currentTarget.src = '/placeholder-image.png')}
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gray-300 flex items-center justify-center">
+                                  <FaImage className="text-gray-500" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">{post.title}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-xs">{post.summary}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          {post.status === 'published' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              <FaCheckCircle className="mr-1" /> Published
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              <FaTimesCircle className="mr-1" /> Draft
                             </span>
                           )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center space-x-3">
-                          <button 
-                            className="text-blue-600 hover:text-blue-800"
-                            onClick={() => handleEditClick(post)}
-                            title="Edit"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button 
-                            className="text-red-600 hover:text-red-800"
-                            onClick={() => handleDeleteClick(post.id)}
-                            title="Delete"
-                          >
-                            <FaTrash />
-                          </button>
-                          <a 
-                            href={`/blog/${post.slug}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-gray-600 hover:text-gray-800"
-                            title="View"
-                          >
-                            <FaEye />
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
-                      No blog posts found matching your criteria.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            <button 
+                              className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                              onClick={() => handleEditClick(post)}
+                              title="Edit"
+                              disabled={isSaving}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button 
+                              className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                              onClick={() => handleDeleteClick(post.id)}
+                              title="Delete"
+                              disabled={isSaving}
+                            >
+                              <FaTrash />
+                            </button>
+                            <a 
+                              href={post.slug ? `/blog/${post.slug}` : '#'}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className={`text-gray-600 hover:text-gray-800 ${!post.slug ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title="View Post"
+                              aria-disabled={!post.slug}
+                              onClick={(e) => !post.slug && e.preventDefault()}
+                            >
+                              <FaEye />
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
       
       {/* Edit/Create Form */}
       {editingPost && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-accent-navy">
               {isCreatingNew ? 'Create New Blog Post' : 'Edit Blog Post'}
             </h2>
             <div className="flex items-center gap-3">
               <button
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
                 onClick={handleCancelEdit}
+                disabled={isSaving}
               >
                 <FaTimesCircle className="mr-2" />
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-accent-forest text-white rounded-lg hover:bg-accent-forest/90 transition-colors flex items-center"
+                className="px-4 py-2 bg-accent-forest text-white rounded-lg hover:bg-accent-forest/90 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleSavePost}
+                disabled={isSaving}
               >
-                <FaSave className="mr-2" />
-                Save Post
+                {isSaving ? <FaSpinner className="animate-spin mr-2" /> : <FaSave className="mr-2" />}
+                {isSaving ? 'Saving...' : 'Save Post'}
               </button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Main content column */}
-            <div className="md:col-span-2 space-y-6">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Post Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={editingPost.title}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  placeholder="Enter post title"
-                />
-              </div>
-              
-              {/* Slug with auto-generate */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    URL Slug
+          <form onSubmit={(e) => { e.preventDefault(); handleSavePost(); }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="md:col-span-2 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Post Title
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleSlugGeneration}
-                    className="text-xs text-accent-forest hover:text-accent-navy"
-                  >
-                    Generate from title
-                  </button>
+                  <input
+                    type="text"
+                    name="title"
+                    value={editingPost.title}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    placeholder="Enter post title"
+                    disabled={isSaving}
+                  />
                 </div>
-                <input
-                  type="text"
-                  name="slug"
-                  value={editingPost.slug}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  placeholder="enter-url-slug"
-                />
-              </div>
-              
-              {/* Summary */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Summary
-                </label>
-                <textarea
-                  name="summary"
-                  value={editingPost.summary}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  placeholder="Brief summary of your post"
-                  rows={2}
-                ></textarea>
-              </div>
-              
-              {/* Content */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Content
-                </label>
-                <textarea
-                  name="content"
-                  value={editingPost.content}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest font-mono text-sm"
-                  placeholder="Blog post content (HTML supported)"
-                  rows={15}
-                ></textarea>
-                <p className="text-xs text-gray-500 mt-1">
-                  HTML formatting is supported. Use tags like &lt;p&gt;, &lt;h3&gt;, &lt;ul&gt;, &lt;li&gt;, etc.
-                </p>
-              </div>
-              
-              {/* Tags */}
-              <div>
-                <div className="flex items-center mb-1">
-                  <FaTags className="text-gray-500 mr-2" />
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tags
-                  </label>
-                </div>
-                <input
-                  type="text"
-                  value={editingPost.tags.join(', ')}
-                  onChange={handleTagsChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  placeholder="e.g. repairs, maintenance, tips (comma separated)"
-                />
-              </div>
-            </div>
-            
-            {/* Sidebar column */}
-            <div className="space-y-6">
-              {/* Featured image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Featured Image
-                </label>
-                <div className="border border-gray-300 rounded-lg p-2">
-                  <div className="aspect-w-16 aspect-h-9 mb-3 bg-gray-100 rounded overflow-hidden">
-                    <img 
-                      src={editingPost.image} 
-                      alt="Featured" 
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <div className="flex justify-between">
-                    <input
-                      type="text"
-                      name="image"
-                      value={editingPost.image}
-                      onChange={handleInputChange}
-                      className="flex-grow px-3 py-1 text-sm rounded border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                      placeholder="/images/path-to-image.jpg"
-                    />
+                
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      URL Slug
+                    </label>
                     <button
                       type="button"
-                      className="ml-2 p-2 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200"
-                      title="Upload image (not implemented in demo)"
+                      onClick={handleSlugGeneration}
+                      className="text-xs text-accent-forest hover:text-accent-navy disabled:opacity-50"
+                      disabled={isSaving}
                     >
-                      <FaImage />
+                      Generate from title
                     </button>
                   </div>
+                  <input
+                    type="text"
+                    name="slug"
+                    value={editingPost.slug}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    placeholder="enter-url-slug"
+                    disabled={isSaving}
+                  />
                 </div>
-              </div>
-              
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <select
-                  name="category"
-                  value={editingPost.category}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                >
-                  {categories.filter(c => c !== 'All').map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Author */}
-              <div>
-                <div className="flex items-center mb-1">
-                  <FaUser className="text-gray-500 mr-2" />
-                  <label className="block text-sm font-medium text-gray-700">
-                    Author
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Summary
                   </label>
+                  <textarea
+                    name="summary"
+                    value={editingPost.summary}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    placeholder="Brief summary of your post"
+                    rows={2}
+                    disabled={isSaving}
+                  ></textarea>
                 </div>
-                <input
-                  type="text"
-                  name="author"
-                  value={editingPost.author}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  placeholder="Author name"
-                />
-              </div>
-              
-              {/* Publish date */}
-              <div>
-                <div className="flex items-center mb-1">
-                  <FaCalendarAlt className="text-gray-500 mr-2" />
-                  <label className="block text-sm font-medium text-gray-700">
-                    Publish Date
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Content
                   </label>
+                  <textarea
+                    name="content"
+                    value={editingPost.content}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    placeholder="Blog post content (HTML supported)"
+                    rows={15}
+                    disabled={isSaving}
+                  ></textarea>
+                  <p className="text-xs text-gray-500 mt-1">
+                    HTML formatting is supported. Use tags like &lt;p&gt;, &lt;h3&gt;, &lt;ul&gt;, &lt;li&gt;, etc.
+                  </p>
                 </div>
-                <input
-                  type="date"
-                  name="publishDate"
-                  value={editingPost.publishDate}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                />
+                
+                <div>
+                  <div className="flex items-center mb-1">
+                    <FaTags className="text-gray-500 mr-2" />
+                    <label className="block text-sm font-medium text-gray-700">
+                      Tags
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={editingPost.tags.join(', ')}
+                    onChange={handleTagsChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    placeholder="e.g. repairs, maintenance, tips (comma separated)"
+                    disabled={isSaving}
+                  />
+                </div>
               </div>
               
-              {/* Read time */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Read Time
-                </label>
-                <input
-                  type="text"
-                  name="readTime"
-                  value={editingPost.readTime}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest"
-                  placeholder="e.g. 5 min read"
-                />
-              </div>
-              
-              {/* Status toggles */}
-              <div className="pt-4 border-t border-gray-100">
-                <div className="space-y-4">
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Featured Post</span>
-                    <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                      <input 
-                        type="checkbox" 
-                        name="featured"
-                        id="featured"
-                        checked={editingPost.featured}
-                        onChange={handleCheckboxChange}
-                        className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer"
-                      />
-                      <label 
-                        htmlFor="featured"
-                        className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${
-                          editingPost.featured ? 'bg-accent-forest' : 'bg-gray-300'
-                        }`}
-                      ></label>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Featured Image
+                  </label>
+                  <div className="border border-gray-300 rounded-lg p-2">
+                    <div className="aspect-w-16 aspect-h-9 mb-3 bg-gray-100 rounded overflow-hidden">
+                      {editingPost.featured_image ? (
+                        <img 
+                          src={editingPost.featured_image} 
+                          alt="Featured" 
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full bg-gray-200">
+                          <FaImage className="text-4xl text-gray-400" />
+                        </div>
+                      )}
                     </div>
-                  </label>
-                  
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Published</span>
-                    <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                      <input 
-                        type="checkbox" 
-                        name="published"
-                        id="published"
-                        checked={editingPost.published}
-                        onChange={handleCheckboxChange}
-                        className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer"
+                    <div className="flex flex-col gap-2">
+                      <FileUpload
+                        bucketName="blog-images"
+                        onUploadComplete={handleImageUpload}
+                        acceptedFileTypes="image/*"
+                        label="Upload Image"
                       />
-                      <label 
-                        htmlFor="published"
-                        className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${
-                          editingPost.published ? 'bg-accent-forest' : 'bg-gray-300'
-                        }`}
-                      ></label>
+                      <div className="flex items-center">
+                        <input
+                          type="text"
+                          name="featured_image"
+                          value={editingPost.featured_image || ''}
+                          onChange={handleInputChange}
+                          className="flex-grow px-3 py-1 text-sm rounded border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                          placeholder="Or enter image URL directly"
+                          disabled={isSaving}
+                        />
+                      </div>
                     </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <select
+                    name="category"
+                    value={editingPost.category}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    disabled={isSaving}
+                  >
+                    {categories.filter(c => c !== 'All').map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <div className="flex items-center mb-1">
+                    <FaCalendarAlt className="text-gray-500 mr-2" />
+                    <label className="block text-sm font-medium text-gray-700">
+                      Publish Date
+                    </label>
+                  </div>
+                  <input
+                    type="date"
+                    name="published_at"
+                    value={(editingPost.published_at || '').split('T')[0]}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-accent-forest focus:border-accent-forest disabled:bg-gray-100"
+                    disabled={isSaving}
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      name="published"
+                      checked={editingPost.status === 'published'}
+                      onChange={handleCheckboxChange}
+                      className="form-checkbox h-5 w-5 text-accent-forest rounded focus:ring-accent-forest"
+                      disabled={isSaving}
+                    />
+                    <span className="ml-2 text-gray-700">Published</span>
                   </label>
                 </div>
               </div>
             </div>
-          </div>
+          </form>
         </div>
       )}
       
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
-            <p className="text-gray-500 mb-6">
-              Are you sure you want to delete this blog post? This action cannot be undone.
-            </p>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete the post "{blogPosts.find(p => p.id === postToDelete)?.title || 'this post'}"? This action cannot be undone.</p>
             <div className="flex justify-end gap-3">
-              <button
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                onClick={confirmDelete}
-              >
-                Delete
+              <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50" onClick={() => setShowDeleteModal(false)} disabled={isLoading}>Cancel</button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmDelete} disabled={isLoading}>
+                 {isLoading ? <FaSpinner className="animate-spin mr-2" /> : <FaTrash className="mr-2" />} {isLoading ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

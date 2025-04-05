@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   FaTachometerAlt, 
@@ -14,19 +14,47 @@ import {
   FaTimes,
   FaCog,
   FaSignOutAlt,
-  FaBriefcase
+  FaBriefcase,
+  FaFileAlt,
+  FaDatabase
 } from 'react-icons/fa';
-import authService from '../../services/authService';
+import authService, { AppUser } from '../../services/authService';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+// Extended AppUser interface with additional fields
+interface AdminUser extends AppUser {
+  name?: string;
+  username?: string;
+}
+
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userData, setUserData] = useState<AdminUser | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const user = authService.getCurrentUser();
+  
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = await authService.getCurrentUser();
+      // Add additional user info that may be needed for display
+      if (user) {
+        const adminUser: AdminUser = {
+          ...user,
+          name: user.email?.split('@')[0] || 'Admin', // Use email prefix as name
+          username: user.email || 'admin' // Use email as username
+        };
+        setUserData(adminUser);
+      } else {
+        setUserData(null);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
   
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: <FaTachometerAlt /> },
@@ -38,7 +66,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Quote Calculator', path: '/admin/calculator-settings', icon: <FaCalculator /> },
     { name: 'Bookings', path: '/admin/bookings', icon: <FaCalendarAlt /> },
     { name: 'Jobs Management', path: '/admin/jobs', icon: <FaBriefcase /> },
+    { name: 'Applications', path: '/admin/applications', icon: <FaFileAlt /> },
     { name: 'Messages', path: '/admin/messages', icon: <FaEnvelope /> },
+    { name: 'Database Explorer', path: '/admin/database', icon: <FaDatabase /> },
     { name: 'Settings', path: '/admin/settings', icon: <FaCog /> },
   ];
   
@@ -81,11 +111,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* User Info */}
         <div className="p-4 border-b border-accent-navy-light flex items-center">
           <div className="w-10 h-10 rounded-full bg-accent-forest flex items-center justify-center mr-3">
-            <span className="font-semibold text-white">{user?.name?.charAt(0) || 'A'}</span>
+            <span className="font-semibold text-white">{userData?.name?.charAt(0) || 'A'}</span>
           </div>
           <div>
-            <div className="font-medium">{user?.name || 'Admin User'}</div>
-            <div className="text-xs text-gray-300">{user?.username || 'admin'}</div>
+            <div className="font-medium">{userData?.name || 'Admin User'}</div>
+            <div className="text-xs text-gray-300">{userData?.username || 'admin'}</div>
           </div>
         </div>
         

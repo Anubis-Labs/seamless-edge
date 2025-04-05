@@ -21,28 +21,27 @@ const Chatbot: React.FC = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiConfigured, setApiConfigured] = useState(true); // Optimistically assume it's configured
+  const [apiConfigured, setApiConfigured] = useState(false); // Set to false initially for demo mode
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check if Gemini API is configured on component mount
   useEffect(() => {
-    setApiConfigured(isGeminiConfigured());
-    if (!isGeminiConfigured()) {
+    const isConfigured = isGeminiConfigured() && import.meta.env.VITE_GEMINI_API_KEY !== 'DEMO_MODE';
+    setApiConfigured(isConfigured);
+    if (!isConfigured) {
       console.warn('Gemini API is not configured. Chatbot will use fallback responses.');
-      // Add a message to indicate API is not configured, but only if chat is already open
-      if (isOpen) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            text: 'Note: I\'m currently running in demo mode. For full functionality, please configure the Gemini API.',
-            sender: 'bot',
-            timestamp: new Date(),
-          }
-        ]);
-      }
+      // Add a message to indicate API is in demo mode
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          text: 'Note: I\'m currently running in demo mode with pre-programmed responses.',
+          sender: 'bot',
+          timestamp: new Date(),
+        }
+      ]);
     }
-  }, [isOpen]);
+  }, []);
 
   // Auto-scroll to the bottom of messages
   useEffect(() => {
